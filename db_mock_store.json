@@ -1,0 +1,203 @@
+{
+  "menu": [
+    {
+      "name": "Regular Cold Coco",
+      "gujaratiName": "રેગ્યુલર કોલ્ડ કોકો",
+      "description": "Our signature rich, thick, and creamy chocolate milkshake, brewed to perfection.",
+      "price": 50,
+      "costPrice": 22,
+      "category": "Cold Coco",
+      "preparationTime": 2,
+      "availability": true,
+      "displayOrder": 1,
+      "tags": [],
+      "id": "m-1",
+      "archived": true
+    },
+    {
+      "name": "Premium Almond Coco",
+      "gujaratiName": "પ્રિમિયમ બદામ કોકો",
+      "description": "Classic Cold Coco loaded with premium roasted almond shavings.",
+      "price": 70,
+      "costPrice": 32,
+      "category": "Premium",
+      "preparationTime": 3,
+      "availability": true,
+      "displayOrder": 2,
+      "tags": [],
+      "id": "m-2",
+      "archived": true
+    },
+    {
+      "name": "Special Kesar Pista Coco",
+      "gujaratiName": "સ્પેશિયલ કેસર પિસ્તા કોકો",
+      "description": "Thick coco infused with premium saffron strands and real pistachio bits.",
+      "price": 80,
+      "costPrice": 38,
+      "category": "Special",
+      "preparationTime": 3,
+      "availability": true,
+      "displayOrder": 3,
+      "tags": [],
+      "id": "m-3",
+      "archived": true
+    },
+    {
+      "name": "Seasonal Mango Coco",
+      "gujaratiName": "સીઝનલ મેંગો કોકો",
+      "description": "A seasonal blend of rich chocolate coco and real Alphonso mango pulp.",
+      "price": 90,
+      "costPrice": 42,
+      "category": "Seasonal",
+      "preparationTime": 4,
+      "availability": true,
+      "displayOrder": 4,
+      "tags": [
+        "Seasonal"
+      ],
+      "id": "m-4",
+      "archived": true
+    },
+    {
+      "name": "Chocolate Chip Coco",
+      "gujaratiName": "ચોકલેટ ચિપ કોકો",
+      "description": "Classic Cold Coco topped with dark and white chocolate chips for extra crunch.",
+      "price": 75,
+      "costPrice": 30,
+      "category": "Premium",
+      "preparationTime": 3,
+      "availability": true,
+      "displayOrder": 5,
+      "tags": [],
+      "id": "m-5",
+      "archived": true
+    },
+    {
+      "id": "m-1785051594431",
+      "name": "Plain Cold Coco",
+      "gujaratiName": "",
+      "description": "Seedho Sado Sip",
+      "price": 70,
+      "costPrice": 32,
+      "category": "Cold Coco",
+      "preparationTime": 2,
+      "availability": true,
+      "displayOrder": 1,
+      "tags": [],
+      "imageUrl": "https://www.prasadcoldcoco.in/Images/Plain.png",
+      "createdAt": "2026-07-26T07:39:54.431Z"
+    },
+    {
+      "id": "m-1785051700825",
+      "name": "Choco Chips Coco",
+      "gujaratiName": "",
+      "description": "Crunchy Coco Blast",
+      "price": 80,
+      "costPrice": 37,
+      "category": "Cold Coco",
+      "preparationTime": 2,
+      "availability": true,
+      "displayOrder": 2,
+      "tags": [],
+      "imageUrl": "https://www.prasadcoldcoco.in/Images/chococips.png",
+      "createdAt": "2026-07-26T07:41:40.825Z"
+    },
+    {
+      "id": "m-1785051780139",
+      "name": "Oreo Coco",
+      "gujaratiName": "",
+      "description": "Oreo no Jadu",
+      "price": 80,
+      "costPrice": 37,
+      "category": "Cold Coco",
+      "preparationTime": 3,
+      "availability": true,
+      "displayOrder": 3,
+      "tags": [
+        "Best Selling"
+      ],
+      "imageUrl": "https://www.prasadcoldcoco.in/Images/Oreao.png",
+      "createdAt": "2026-07-26T07:43:00.139Z"
+    },
+    {
+      "id": "m-1785051829458",
+      "name": "Dry Fruit Coco",
+      "gujaratiName": "",
+      "description": "Kaju-Badam Jalsa",
+      "price": 90,
+      "costPrice": 45,
+      "category": "Cold Coco",
+      "preparationTime": 2,
+      "availability": false,
+      "displayOrder": 7,
+      "tags": [],
+      "imageUrl": "https://www.prasadcoldcoco.in/Images/dryfruit.png",
+      "createdAt": "2026-07-26T07:43:49.458Z"
+    },
+    {
+      "id": "m-1785051927936",
+      "name": "Biskoff Coco",
+      "gujaratiName": "",
+      "description": "Premium Jalsa Drink",
+      "price": 90,
+      "costPrice": 39,
+      "category": "Cold Coco",
+      "preparationTime": 3,
+      "availability": true,
+      "displayOrder": 4,
+      "tags": [
+        "Best Choice"
+      ],
+      "imageUrl": "https://www.prasadcoldcoco.in/Images/Biskoff.png",
+      "createdAt": "2026-07-26T07:45:27.936Z"
+    },
+    {
+      "id": "m-1785052002218",
+      "name": "KitKat Cococ",
+      "gujaratiName": "",
+      "description": "Break Time Coco",
+      "price": 100,
+      "costPrice": 52,
+      "category": "Cold Coco",
+      "preparationTime": 3,
+      "availability": true,
+      "displayOrder": 5,
+      "tags": [
+        "Most Loved"
+      ],
+      "imageUrl": "https://www.prasadcoldcoco.in/Images/Kiteket.png",
+      "createdAt": "2026-07-26T07:46:42.218Z"
+    },
+    {
+      "id": "m-1785052128475",
+      "name": "Premix Powder 100gm",
+      "gujaratiName": "",
+      "description": "Cold Coco Premix 100gm",
+      "price": 60,
+      "costPrice": 25,
+      "category": "Cold Coco",
+      "preparationTime": 1,
+      "availability": true,
+      "displayOrder": 6,
+      "tags": [],
+      "imageUrl": "https://www.prasadcoldcoco.in/Images/Premix.png",
+      "createdAt": "2026-07-26T07:48:48.475Z"
+    }
+  ],
+  "orders": [],
+  "customers": [],
+  "settings": {
+    "businessName": "Prasad Cold Coco",
+    "tagline": "Mix, Sip, Smile",
+    "address": "Prasad Cold Coco, Near Indusind bank, Sukan Char rasta, Nikol, Ahmedabad",
+    "phone": "+91 9099792454",
+    "gstNumber": "",
+    "upiId": "paytm.s26ye94@pty",
+    "receiptHeader": "WELCOME TO PRASAD COLD COCO",
+    "receiptFooter": "THANK YOU! VISIT AGAIN!",
+    "googleReviewUrl": "https://g.page/r/CapLAbnAmxF7EAI/review",
+    "enableSound": true,
+    "printerWidth": "58mm",
+    "adminPassword": "Secure@098"
+  }
+}

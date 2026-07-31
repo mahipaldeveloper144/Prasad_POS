@@ -1,0 +1,86 @@
+export const defaultMenuItems = [
+  {
+    name: "Regular Cold Coco",
+    gujaratiName: "રેગ્યુલર કોલ્ડ કોકો",
+    description: "Our signature rich, thick, and creamy chocolate milkshake, brewed to perfection.",
+    price: 50,
+    costPrice: 22,
+    category: "Cold Coco",
+    preparationTime: 2,
+    availability: true,
+    displayOrder: 1,
+    tags: ["Popular", "Recommended"],
+    imageUrl: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=500&auto=format&fit=crop&q=80"
+  },
+  {
+    name: "Premium Almond Coco",
+    gujaratiName: "પ્રિમિયમ બદામ કોકો",
+    description: "Classic Cold Coco loaded with premium roasted almond shavings.",
+    price: 70,
+    costPrice: 32,
+    category: "Premium",
+    preparationTime: 3,
+    availability: true,
+    displayOrder: 2,
+    tags: ["Recommended"],
+    imageUrl: "https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=500&auto=format&fit=crop&q=80"
+  },
+  {
+    name: "Special Kesar Pista Coco",
+    gujaratiName: "સ્પેશિયલ કેસર પિસ્તા કોકો",
+    description: "Thick coco infused with premium saffron strands and real pistachio bits.",
+    price: 80,
+    costPrice: 38,
+    category: "Special",
+    preparationTime: 3,
+    availability: true,
+    displayOrder: 3,
+    tags: ["New"],
+    imageUrl: "https://images.unsplash.com/photo-1579954115545-aad516423832?w=500&auto=format&fit=crop&q=80"
+  },
+  {
+    name: "Seasonal Mango Coco",
+    gujaratiName: "સીઝનલ મેંગો કોકો",
+    description: "A seasonal blend of rich chocolate coco and real Alphonso mango pulp.",
+    price: 90,
+    costPrice: 42,
+    category: "Seasonal",
+    preparationTime: 4,
+    availability: false,
+    displayOrder: 4,
+    tags: ["Seasonal"],
+    imageUrl: "https://images.unsplash.com/photo-1546173159-315724a31696?w=500&auto=format&fit=crop&q=80"
+  },
+  {
+    name: "Chocolate Chip Coco",
+    gujaratiName: "ચોકલેટ ચિપ કોકો",
+    description: "Classic Cold Coco topped with dark and white chocolate chips for extra crunch.",
+    price: 75,
+    costPrice: 30,
+    category: "Premium",
+    preparationTime: 3,
+    availability: true,
+    displayOrder: 5,
+    tags: ["Popular"],
+    imageUrl: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=500&auto=format&fit=crop&q=80"
+  }
+];
+
+export const defaultCustomers = [];
+
+export const defaultOrders = [];
+
+export const defaultSettings = {
+  businessName: "Prasad Cold Coco",
+  tagline: "Mix, Sip, Smile",
+  address: "Althan-Bhimrad Road, Surat, Gujarat",
+  phone: "+91 98765 43210",
+  gstNumber: "",
+  upiId: "prasadcoldcoco@okaxis",
+  receiptHeader: "WELCOME TO PRASAD COLD COCO",
+  receiptFooter: "THANK YOU! VISIT AGAIN!",
+  googleReviewUrl: "https://g.page/r/your-review-code",
+  enableSound: true,
+  printerWidth: "58mm",
+  adminPassword: "Secure@098"
+};

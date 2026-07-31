@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* Color system - Chocolate Cocoa and Whipped Cream */
+  --coco-dark: #2a110d;
+  --coco-medium: #3F1A13;
+  --coco-light: #5b261d;
+  --coco-accent: #7d382b;
+  --cream-deep: #e8cc9a;
+  --cream-base: #F7E1B8;
+  --cream-light: #fcf4e3;
+
+  --foreground: #3F1A13;
+  --background: var(--cream-light);
+
+  --font-sans: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* KDS Dark Mode overrides */
+.dark-theme-kds {
+  --background: #3F1A13;
+  --foreground: #fcf8f6;
+  --cream-light: #21120a;
+  --cream-base: #331d12;
+  --cream-deep: #4d2d1d;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-coco-dark: var(--coco-dark);
+  --color-coco-medium: var(--coco-medium);
+  --color-coco-light: var(--coco-light);
+  --color-coco-accent: var(--coco-accent);
+  --color-cream-deep: var(--cream-deep);
+  --color-cream-base: var(--cream-base);
+  --color-cream-light: var(--cream-light);
+
+  --font-sans: var(--font-sans);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--cream-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--coco-accent);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--coco-light);
+}
+
+/* Animations */
+@keyframes pulse-blink {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(140, 91, 71, 0.7);
+  }
+
+  50% {
+    opacity: 0.85;
+    transform: scale(0.98);
+    box-shadow: 0 0 12px 6px rgba(140, 91, 71, 0.4);
+  }
+}
+
+.animate-new-order {
+  animation: pulse-blink 1.5s infinite ease-in-out;
+}
+
+/* Receipt Print Styling */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .print-receipt-container,
+  .print-receipt-container * {
+    visibility: visible;
+  }
+
+  .print-receipt-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 58mm;
+    /* Defaults to 58mm but adjusts based on class */
+    margin: 0;
+    padding: 2mm;
+    background: white !important;
+    color: black !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-receipt-container-80 {
+    max-width: 80mm !important;
+    padding: 4mm !important;
+    font-size: 13px !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
