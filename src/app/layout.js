@@ -10,7 +10,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col md:flex-row bg-[#fdfaf7]" suppressHydrationWarning>
         <Sidebar />
-        <main className="flex-1 pb-24 md:pb-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}>{children}</main>
+        <main className="flex-1 min-w-0 pb-24 md:pb-0" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}>{children}</main>
       </body>
     </html>
   );

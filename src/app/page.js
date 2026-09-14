@@ -136,6 +136,23 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
     (sum, item) => sum + ((item.parcelQty || 0) + (item.atCartQty || 0) || item.quantity || 0),
     0
   );
+  const totalParcelCount = cart.reduce(
+    (sum, item) => sum + (item.parcelQty !== undefined ? item.parcelQty : (item.orderMode === "PARCEL" ? (item.quantity || 1) : 0)),
+    0
+  );
+  const totalAtCartCount = cart.reduce(
+    (sum, item) => sum + (item.atCartQty !== undefined ? item.atCartQty : (item.orderMode === "AT_CART" || !item.orderMode ? (item.quantity || 1) : 0)),
+    0
+  );
+  const autoOrderType =
+    totalParcelCount > 0 && totalAtCartCount > 0
+      ? "Parcel & At Cart"
+      : totalParcelCount > 0
+      ? "Parcel"
+      : totalAtCartCount > 0
+      ? "At Cart"
+      : "Parcel";
+
   const finalTotal = Math.max(0, subtotal - discount);
   const cashReceivedNum = parseFloat(cashReceived) || 0;
   const changeToReturn = cashReceived !== "" ? cashReceivedNum - finalTotal : 0;
@@ -187,6 +204,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
         const pQty = i.parcelQty !== undefined ? i.parcelQty : (i.orderMode === "PARCEL" ? (i.quantity || 1) : 0);
         const cQty = i.atCartQty !== undefined ? i.atCartQty : (i.orderMode === "AT_CART" || !i.orderMode ? (i.quantity || 1) : 0);
         const tQty = (i.parcelQty || 0) + (i.atCartQty || 0) || i.quantity || 1;
+        const itemMode = pQty > 0 && cQty > 0 ? "MIXED" : (pQty > 0 ? "PARCEL" : "AT_CART");
         return {
           name: i.name,
           size: i.size || "250 ml",
@@ -197,6 +215,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
           totalQty: tQty,
           quantity: tQty,
           subtotal: i.price * tQty,
+          orderMode: itemMode,
         };
       }),
       subtotal,
@@ -207,7 +226,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
       cashReceived: paymentMethod === "Cash" && cashReceived !== "" ? cashReceivedNum : finalTotal,
       changeAmount: paymentMethod === "Cash" && cashReceived !== "" ? Math.max(0, changeToReturn) : 0,
       status: "New",
-      type: orderType,
+      type: autoOrderType,
       notes,
     };
 
@@ -308,7 +327,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
       
       
 
-      <main className="flex-1 max-w-[1400px] w-full mx-auto p-3 sm:p-6 pb-8 lg:pb-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 no-print relative">
+      <main className="flex-1 max-w-[1700px] w-full mx-auto p-3 sm:p-6 pb-8 lg:pb-8 grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 no-print relative">
         {/* LEFT COLUMN: Menu Selection (Col span 7 or 8) */}
         <section className="lg:col-span-8 flex flex-col gap-6">
           {/* Header & Stats Banner */}
@@ -387,14 +406,22 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                     {/* Image/logo preview */}
                     {item.imageUrl && (
                       <img
-                        src={item.imageUrl}
+                        src={item.imageUrl || "./Plain.png"}
                         alt={item.name}
-                        className="w-16 h-16 object-cover rounded-full mx-auto mb-2 border border-cream-deep/30"
+                        // className="w-16 h-16 object-cover rounded-full mx-auto mb-2 border border-cream-deep/30"
+                        style={{    position: "absolute",
+                          objectFit:"cover",
+                          right: 0,
+                          top: 0,
+                          width: "130px",
+                          height: "176px",
+                          borderRadius: "80px 25px 0px 0px",
+                          border: "1px solid var(--coco-light)",}}
                       />
                     )}
                     {/* Tags */}
                     {item.tags && item.tags.length > 0 && (
-                      <div className="absolute top-4 right-4 flex gap-1.5 z-10">
+                      <div className="absolute top-0 right-[40%] flex gap-1.5 z-10">
                         {item.tags.map((tag) => (
                           <span
                             key={tag}
@@ -571,9 +598,20 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                 Cart
               </h2>
               {cart.length > 0 && (
-                <span className="bg-coco-dark text-white text-xs px-3 py-1 rounded-full font-black shadow-sm">
-                  {totalCartItemsCount} Items
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full border shadow-sm ${
+                    autoOrderType === "Parcel"
+                      ? "bg-amber-100 text-amber-950 border-amber-300"
+                      : autoOrderType === "At Cart"
+                      ? "bg-emerald-100 text-emerald-950 border-emerald-300"
+                      : "bg-purple-100 text-purple-950 border-purple-300"
+                  }`}>
+                    {autoOrderType === "Parcel" ? "📦 Parcel" : autoOrderType === "At Cart" ? "🥤 At Cart" : "📦 Parcel + 🥤 At Cart"}
+                  </span>
+                  <span className="bg-coco-dark text-white text-xs px-3 py-1 rounded-full font-black shadow-sm">
+                    {totalCartItemsCount} Items
+                  </span>
+                </div>
               )}
             </div>
 

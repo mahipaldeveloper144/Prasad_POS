@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import AdminGuard from "@/components/AdminGuard";
-import { fetchOrdersAction, fetchMenuItemsAction } from "@/app/actions";
+import { fetchOrdersAction, fetchMenuItemsAction, clearSalesDataAction } from "@/app/actions";
 import {
   FileBarChart,
   Calendar,
@@ -16,6 +16,7 @@ import {
   Briefcase,
   Layers,
   ShoppingBag,
+  Trash2,
 } from "lucide-react";
 
 export default function ReportsScreen() {
@@ -25,17 +26,36 @@ export default function ReportsScreen() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [clearing, setClearing] = useState(false);
+
+  const loadData = async () => {
+    const dbOrders = await fetchOrdersAction();
+    if (dbOrders) setOrders(dbOrders);
+    
+    const dbItems = await fetchMenuItemsAction();
+    if (dbItems) setMenuItems(dbItems);
+  };
 
   useEffect(() => {
-    async function loadData() {
-      const dbOrders = await fetchOrdersAction();
-      if (dbOrders) setOrders(dbOrders);
-      
-      const dbItems = await fetchMenuItemsAction();
-      if (dbItems) setMenuItems(dbItems);
-    }
     loadData();
   }, []);
+
+  const handleClearSales = async () => {
+    const confirmation = prompt(
+      "WARNING: This will permanently clear all orders and sales history!\nType 'CLEAR' to confirm:"
+    );
+    if (confirmation === "CLEAR") {
+      setClearing(true);
+      const res = await clearSalesDataAction();
+      setClearing(false);
+      if (res && !res.error) {
+        alert("All sales and order data has been cleared!");
+        loadData();
+      } else {
+        alert("Failed to clear sales data: " + (res?.error || "Unknown error"));
+      }
+    }
+  };
 
   // Filter orders based on Date selection
   const getFilteredOrders = () => {
@@ -138,22 +158,24 @@ export default function ReportsScreen() {
 
   const netProfit = Math.max(0, totalSales - totalCost);
 
-  // Item-Level Order Mode breakdown
+  // Item-Level Order Mode breakdown (accurately accounting for parcelQty and atCartQty per item)
   const atCartItemsCount = filteredOrders
     .filter((o) => o.status !== "Cancelled")
     .reduce((sum, o) => {
-      const atCartInOrder = o.items
-        .filter((i) => (i.orderMode || "AT_CART") === "AT_CART")
-        .reduce((itemSum, i) => itemSum + i.quantity, 0);
+      const atCartInOrder = (o.items || []).reduce((itemSum, i) => {
+        const atCartCount = i.atCartQty !== undefined ? i.atCartQty : (i.orderMode === "AT_CART" || !i.orderMode ? (i.quantity || 0) : 0);
+        return itemSum + atCartCount;
+      }, 0);
       return sum + atCartInOrder;
     }, 0);
 
   const parcelItemsCount = filteredOrders
     .filter((o) => o.status !== "Cancelled")
     .reduce((sum, o) => {
-      const parcelInOrder = o.items
-        .filter((i) => (i.orderMode || "AT_CART") === "PARCEL")
-        .reduce((itemSum, i) => itemSum + i.quantity, 0);
+      const parcelInOrder = (o.items || []).reduce((itemSum, i) => {
+        const parcelCount = i.parcelQty !== undefined ? i.parcelQty : (i.orderMode === "PARCEL" ? (i.quantity || 0) : 0);
+        return itemSum + parcelCount;
+      }, 0);
       return sum + parcelInOrder;
     }, 0);
 
@@ -179,7 +201,15 @@ export default function ReportsScreen() {
       o.customerName,
       o.customerPhone || "N/A",
       new Date(o.createdAt).toLocaleString(),
-      o.items.map((i) => `${i.name}(${i.quantity})[${i.orderMode === "PARCEL" ? "PARCEL" : "AT_CART"}]`).join(";"),
+      o.items.map((i) => {
+        const pQty = i.parcelQty !== undefined ? i.parcelQty : (i.orderMode === "PARCEL" ? (i.quantity || 0) : 0);
+        const cQty = i.atCartQty !== undefined ? i.atCartQty : (i.orderMode === "AT_CART" || !i.orderMode ? (i.quantity || 0) : 0);
+        const modes = [];
+        if (pQty > 0) modes.push(`Parcel: ${pQty}`);
+        if (cQty > 0) modes.push(`At Cart: ${cQty}`);
+        const totalCount = i.totalQty !== undefined ? i.totalQty : (i.quantity || (pQty + cQty));
+        return `${i.name}${i.size ? ` (${i.size})` : ""} x ${totalCount} [${modes.join(", ")}]`;
+      }).join("; "),
       o.subtotal,
       o.discount,
       o.total,
@@ -218,7 +248,7 @@ export default function ReportsScreen() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
             <button
               onClick={handleExportCSV}
               className="flex-1 sm:flex-none bg-coco-accent hover:bg-coco-light text-cream-light font-bold text-xs px-4 py-2.5 rounded-xl shadow-md transition-colors flex items-center justify-center gap-1.5 border border-coco-accent"
@@ -232,6 +262,14 @@ export default function ReportsScreen() {
             >
               <Printer className="w-4 h-4" />
               <span>Print Report</span>
+            </button>
+            <button
+              onClick={handleClearSales}
+              disabled={clearing}
+              className="flex-1 sm:flex-none bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs px-4 py-2.5 rounded-xl shadow-sm border border-red-200 transition-colors flex items-center justify-center gap-1.5 no-print active:scale-95"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+              <span>{clearing ? "Clearing..." : "Clear Sales Data"}</span>
             </button>
           </div>
         </div>
@@ -352,7 +390,18 @@ export default function ReportsScreen() {
                 {filteredOrders.length > 0 ? (
                   filteredOrders.map((o) => (
                     <tr key={o.id || o._id} className="hover:bg-cream-light/40 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-coco-dark">{o.orderNumber}</td>
+                      <td className="py-3.5 px-4 font-bold text-coco-dark">
+                        <div>{o.orderNumber}</div>
+                        <span className={`inline-block mt-1 text-[9px] font-black uppercase px-2 py-0.5 rounded border ${
+                          o.type === "Parcel"
+                            ? "bg-amber-100 text-amber-900 border-amber-300"
+                            : o.type === "At Cart"
+                            ? "bg-emerald-100 text-emerald-900 border-emerald-300"
+                            : "bg-purple-100 text-purple-900 border-purple-300"
+                        }`}>
+                          {o.type === "Parcel" ? "📦 Parcel" : o.type === "At Cart" ? "🥤 At Cart" : o.type || "Parcel"}
+                        </span>
+                      </td>
                       <td className="py-3.5 px-3">
                         <span className="font-extrabold block text-coco-dark">{o.customerName}</span>
                         {o.customerPhone && (
@@ -363,23 +412,62 @@ export default function ReportsScreen() {
                         {new Date(o.createdAt).toLocaleDateString()} {new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td className="py-3.5 px-3 font-semibold text-coco-light">
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1.5 max-w-md">
                           {o.items.map((i, idx) => {
-                            const isParcel = (i.orderMode || "AT_CART") === "PARCEL";
+                            const parcelCount = i.parcelQty !== undefined ? i.parcelQty : (i.orderMode === "PARCEL" ? (i.quantity || 1) : 0);
+                            const atCartCount = i.atCartQty !== undefined ? i.atCartQty : (i.orderMode === "AT_CART" || !i.orderMode ? (i.quantity || 1) : 0);
+                            const totalCount = i.totalQty !== undefined ? i.totalQty : (i.quantity || (parcelCount + atCartCount));
+
                             return (
-                              <span
+                              <div
                                 key={idx}
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${
-                                  isParcel
-                                    ? "bg-amber-50 text-amber-800 border-amber-200"
-                                    : "bg-emerald-50 text-emerald-800 border-emerald-200"
-                                }`}
+                                className="inline-flex items-center gap-1.5 bg-cream-base/30 hover:bg-cream-base/50 px-2 py-1 rounded-lg border border-cream-deep/40 text-[11px] leading-tight"
                               >
-                                {i.name} {i.size ? `(${i.size})` : ""} × {i.quantity}
-                                <span className={`text-[8px] uppercase font-black px-1 py-0.2 rounded ${isParcel ? "bg-amber-200 text-amber-900" : "bg-emerald-200 text-emerald-900"}`}>
-                                  {isParcel ? "Parcel" : "At Cart"}
+                                <span className="relative group font-extrabold text-coco-dark whitespace-nowrap cursor-help">
+                                  {i.name
+                                    ?.split(" ")
+                                    .map(word => word.charAt(0))
+                                    .join("")}
+
+                                  {i.size && (
+                                    <span className="text-[10px] text-coco-medium font-bold ml-1">
+                                      ({i.size.replace(" ml", "ml")})
+                                    </span>
+                                  )}
+
+                                  {/* Tooltip */}
+                                  <span className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2
+                                    whitespace-nowrap rounded-md bg-coco-dark px-3 py-1.5
+                                    text-xs font-bold text-white shadow-lg
+                                    opacity-0 invisible
+                                    group-hover:opacity-100 group-hover:visible
+                                    transition-all duration-200 z-50">
+                                    {i.name}
+                                    {i.size && ` (${i.size.replace(" ml", "ml")})`}
+                                  </span>
                                 </span>
-                              </span>
+                                {/* <span className="font-black text-coco-accent bg-white px-1.5 py-0.5 rounded text-[10px] border border-cream-deep/50 shadow-2xs">
+                                  ×{totalCount}
+                                </span> */}
+                                <div className="inline-flex items-center gap-1 text-[10px] font-black">
+                                  {parcelCount > 0 && (
+                                    <span
+                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300"
+                                      title={`Parcel: ${parcelCount}`}
+                                    >
+                                      📦 {parcelCount}
+                                    </span>
+                                  )}
+                                  {atCartCount > 0 && (
+                                    <span
+                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300"
+                                      title={`At Cart: ${atCartCount}`}
+                                    >
+                                      🥤 {atCartCount}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             );
                           })}
                         </div>

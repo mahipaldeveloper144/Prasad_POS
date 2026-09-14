@@ -218,8 +218,14 @@ export default function KitchenDisplay() {
                           <span className="text-xl font-black text-white">
                             {order.orderNumber}
                           </span>
-                          <span className="text-xs font-bold text-[#e2d3c1] bg-[#331d12] px-2.5 py-0.5 rounded-md">
-                            {order.type}
+                          <span className={`text-xs font-black px-2.5 py-0.5 rounded-md border ${
+                            order.type === "Parcel"
+                              ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                              : order.type === "At Cart"
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                              : "bg-[#331d12] text-[#e2d3c1] border-[#8c5b47]/40"
+                          }`}>
+                            {order.type === "Parcel" ? "📦 Parcel" : order.type === "At Cart" ? "🥤 At Cart" : order.type}
                           </span>
                         </div>
                         <h3 className="font-extrabold text-base text-[#e2d3c1] mt-1">
@@ -343,8 +349,14 @@ export default function KitchenDisplay() {
                         <span className="text-xl font-black text-green-400">
                           {order.orderNumber}
                         </span>
-                        <span className="text-xs font-bold text-[#e2d3c1] bg-[#331d12] px-2.5 py-0.5 rounded-md">
-                          {order.type}
+                        <span className={`text-xs font-black px-2.5 py-0.5 rounded-md border ${
+                          order.type === "Parcel"
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                            : order.type === "At Cart"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : "bg-[#331d12] text-[#e2d3c1] border-[#8c5b47]/40"
+                        }`}>
+                          {order.type === "Parcel" ? "📦 Parcel" : order.type === "At Cart" ? "🥤 At Cart" : order.type}
                         </span>
                       </div>
                       <h3 className="font-extrabold text-base text-[#e2d3c1] mt-1">

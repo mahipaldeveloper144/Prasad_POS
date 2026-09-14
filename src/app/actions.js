@@ -11,6 +11,7 @@ import {
   saveCustomer,
   getSettings,
   saveSettings,
+  clearSalesData,
 } from "@/lib/db";
 
 // Helper to serialize Mongoose objects safely to plain JS objects
@@ -75,6 +76,16 @@ export async function updateOrderStatusAction(id, status) {
     return clean(success);
   } catch (error) {
     console.error("updateOrderStatusAction error:", error);
+    return { error: error.message };
+  }
+}
+
+export async function clearSalesDataAction() {
+  try {
+    const success = await clearSalesData();
+    return clean(success);
+  } catch (error) {
+    console.error("clearSalesDataAction error:", error);
     return { error: error.message };
   }
 }

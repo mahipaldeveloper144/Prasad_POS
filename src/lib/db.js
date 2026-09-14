@@ -64,7 +64,7 @@ const OrderSchema = new mongoose.Schema(
       enum: ["New", "Preparing", "Ready", "Completed", "Cancelled"],
       default: "New",
     },
-    type: { type: String, enum: ["Take Away", "Standing"], default: "Take Away" },
+    type: { type: String, default: "Parcel" },
     notes: { type: String, default: "" },
   },
   { timestamps: true }
@@ -283,6 +283,30 @@ export async function updateOrderStatus(id, status) {
     db.orders = db.orders.map((order) =>
       order.id === id || order.orderNumber === id ? { ...order, status } : order
     );
+    writeMockDb(db);
+    return true;
+  }
+}
+
+export async function clearSalesData() {
+  const conn = await dbConnect();
+  if (conn) {
+    await OrderItem.deleteMany({});
+    await CustomerItem.updateMany({}, { $set: { visits: 0, orders: 0, totalSpend: 0, lastVisit: "" } });
+    return true;
+  } else {
+    const db = readMockDb();
+    db.orders = [];
+    if (db.customers) {
+      db.customers = db.customers.map((c) => ({
+        ...c,
+        visits: 0,
+        orders: 0,
+        totalSpend: 0,
+        favoriteItem: "",
+        lastVisit: "",
+      }));
+    }
     writeMockDb(db);
     return true;
   }
