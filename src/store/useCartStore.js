@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { defaultMenuItems } from "@/lib/mockData";
 
 export const useCartStore = create(
   persist(
@@ -14,7 +15,7 @@ export const useCartStore = create(
       paymentMethod: "Cash",
 
       // Menu & Settings Cache (for fast offline reading)
-      menuItems: [],
+      menuItems: defaultMenuItems,
       settings: {
         businessName: "Prasad Cold Coco",
         tagline: "Mix, Sip, Smile",
@@ -33,18 +34,35 @@ export const useCartStore = create(
       currentUser: null, // { username, role: 'Admin' | 'Cashier' }
 
       // Cart Actions
-      // Cart Actions - Dual Order Mode Support (Parcel & At Cart per item)
-      addParcelItem: (item) => {
+      // Cart Actions - Dual Order Mode Support (Parcel & At Cart per item) & Glass Size
+      addParcelItem: (item, size = "250 ml") => {
+        const resolvedSize = size || item.size || "250 ml";
+        const unitPrice =
+          resolvedSize === "200 ml"
+            ? (item.price200ml || item.price)
+            : (item.price250ml || item.price);
+        const unitCostPrice =
+          resolvedSize === "200 ml"
+            ? (item.costPrice200ml || item.costPrice || 0)
+            : (item.costPrice250ml || item.costPrice || 0);
+
         const currentCart = get().cart;
-        const existingIndex = currentCart.findIndex((i) => i.name === item.name);
+        const existingIndex = currentCart.findIndex(
+          (i) => i.name === item.name && (i.size || "250 ml") === resolvedSize
+        );
         if (existingIndex > -1) {
           set({
             cart: currentCart.map((i, idx) =>
               idx === existingIndex
                 ? {
                     ...i,
+                    price: unitPrice,
+                    costPrice: unitCostPrice,
+                    size: resolvedSize,
                     parcelQty: (i.parcelQty || 0) + 1,
                     atCartQty: i.atCartQty || 0,
+                    quantity: (i.parcelQty || 0) + 1 + (i.atCartQty || 0),
+                    subtotal: ((i.parcelQty || 0) + 1 + (i.atCartQty || 0)) * unitPrice,
                   }
                 : i
             ),
@@ -55,25 +73,47 @@ export const useCartStore = create(
               ...currentCart,
               {
                 ...item,
+                size: resolvedSize,
+                price: unitPrice,
+                costPrice: unitCostPrice,
                 parcelQty: 1,
                 atCartQty: 0,
+                quantity: 1,
+                subtotal: unitPrice,
               },
             ],
           });
         }
       },
 
-      addAtCartItem: (item) => {
+      addAtCartItem: (item, size = "250 ml") => {
+        const resolvedSize = size || item.size || "250 ml";
+        const unitPrice =
+          resolvedSize === "200 ml"
+            ? (item.price200ml || item.price)
+            : (item.price250ml || item.price);
+        const unitCostPrice =
+          resolvedSize === "200 ml"
+            ? (item.costPrice200ml || item.costPrice || 0)
+            : (item.costPrice250ml || item.costPrice || 0);
+
         const currentCart = get().cart;
-        const existingIndex = currentCart.findIndex((i) => i.name === item.name);
+        const existingIndex = currentCart.findIndex(
+          (i) => i.name === item.name && (i.size || "250 ml") === resolvedSize
+        );
         if (existingIndex > -1) {
           set({
             cart: currentCart.map((i, idx) =>
               idx === existingIndex
                 ? {
                     ...i,
+                    price: unitPrice,
+                    costPrice: unitCostPrice,
+                    size: resolvedSize,
                     parcelQty: i.parcelQty || 0,
                     atCartQty: (i.atCartQty || 0) + 1,
+                    quantity: (i.parcelQty || 0) + (i.atCartQty || 0) + 1,
+                    subtotal: ((i.parcelQty || 0) + (i.atCartQty || 0) + 1) * unitPrice,
                   }
                 : i
             ),
@@ -84,20 +124,27 @@ export const useCartStore = create(
               ...currentCart,
               {
                 ...item,
+                size: resolvedSize,
+                price: unitPrice,
+                costPrice: unitCostPrice,
                 parcelQty: 0,
                 atCartQty: 1,
+                quantity: 1,
+                subtotal: unitPrice,
               },
             ],
           });
         }
       },
 
-      updateParcelQty: (indexOrName, quantity) => {
+      updateParcelQty: (indexOrKey, quantity) => {
         const currentCart = get().cart;
         const index =
-          typeof indexOrName === "number"
-            ? indexOrName
-            : currentCart.findIndex((i) => i.name === indexOrName);
+          typeof indexOrKey === "number"
+            ? indexOrKey
+            : currentCart.findIndex(
+                (i) => i.name === indexOrKey || `${i.name}-${i.size}` === indexOrKey
+              );
 
         if (index === -1 || index >= currentCart.length) return;
         const target = currentCart[index];
@@ -107,20 +154,30 @@ export const useCartStore = create(
         if (newParcelQty <= 0 && currentAtCartQty <= 0) {
           set({ cart: currentCart.filter((_, idx) => idx !== index) });
         } else {
+          const totalQ = newParcelQty + currentAtCartQty;
           set({
             cart: currentCart.map((i, idx) =>
-              idx === index ? { ...i, parcelQty: newParcelQty } : i
+              idx === index
+                ? {
+                    ...i,
+                    parcelQty: newParcelQty,
+                    quantity: totalQ,
+                    subtotal: totalQ * i.price,
+                  }
+                : i
             ),
           });
         }
       },
 
-      updateAtCartQty: (indexOrName, quantity) => {
+      updateAtCartQty: (indexOrKey, quantity) => {
         const currentCart = get().cart;
         const index =
-          typeof indexOrName === "number"
-            ? indexOrName
-            : currentCart.findIndex((i) => i.name === indexOrName);
+          typeof indexOrKey === "number"
+            ? indexOrKey
+            : currentCart.findIndex(
+                (i) => i.name === indexOrKey || `${i.name}-${i.size}` === indexOrKey
+              );
 
         if (index === -1 || index >= currentCart.length) return;
         const target = currentCart[index];
@@ -130,44 +187,67 @@ export const useCartStore = create(
         if (currentParcelQty <= 0 && newAtCartQty <= 0) {
           set({ cart: currentCart.filter((_, idx) => idx !== index) });
         } else {
+          const totalQ = currentParcelQty + newAtCartQty;
           set({
             cart: currentCart.map((i, idx) =>
-              idx === index ? { ...i, atCartQty: newAtCartQty } : i
+              idx === index
+                ? {
+                    ...i,
+                    atCartQty: newAtCartQty,
+                    quantity: totalQ,
+                    subtotal: totalQ * i.price,
+                  }
+                : i
             ),
           });
         }
       },
 
-      removeFromCart: (indexOrName) => {
+      removeFromCart: (indexOrKey) => {
         const currentCart = get().cart;
-        if (typeof indexOrName === "number") {
-          set({ cart: currentCart.filter((_, idx) => idx !== indexOrName) });
+        if (typeof indexOrKey === "number") {
+          set({ cart: currentCart.filter((_, idx) => idx !== indexOrKey) });
         } else {
-          set({ cart: currentCart.filter((i) => i.name !== indexOrName) });
+          set({
+            cart: currentCart.filter(
+              (i) => i.name !== indexOrKey && `${i.name}-${i.size}` !== indexOrKey
+            ),
+          });
         }
       },
 
       // Helper getters
-      getParcelQty: (itemName) => {
-        const item = get().cart.find((i) => i.name === itemName);
+      getParcelQty: (itemName, size = "250 ml") => {
+        const item = get().cart.find(
+          (i) => i.name === itemName && (i.size || "250 ml") === size
+        );
         return item?.parcelQty || 0;
       },
-      getAtCartQty: (itemName) => {
-        const item = get().cart.find((i) => i.name === itemName);
+      getAtCartQty: (itemName, size = "250 ml") => {
+        const item = get().cart.find(
+          (i) => i.name === itemName && (i.size || "250 ml") === size
+        );
         return item?.atCartQty || 0;
       },
-      getTotalQty: (itemName) => {
-        const item = get().cart.find((i) => i.name === itemName);
-        return (item?.parcelQty || 0) + (item?.atCartQty || 0);
+      getTotalQty: (itemName, size) => {
+        if (size) {
+          const item = get().cart.find(
+            (i) => i.name === itemName && (i.size || "250 ml") === size
+          );
+          return (item?.parcelQty || 0) + (item?.atCartQty || 0);
+        }
+        return get()
+          .cart.filter((i) => i.name === itemName)
+          .reduce((sum, i) => sum + (i.parcelQty || 0) + (i.atCartQty || 0), 0);
       },
 
       // Backward compatibility wrappers
-      addToCart: (item, targetMode) => {
+      addToCart: (item, targetMode, size = "250 ml") => {
         const mode = targetMode || item.orderMode || "AT_CART";
         if (mode === "PARCEL" || mode === "Parcel") {
-          get().addParcelItem(item);
+          get().addParcelItem(item, size);
         } else {
-          get().addAtCartItem(item);
+          get().addAtCartItem(item, size);
         }
       },
 
@@ -209,7 +289,10 @@ export const useCartStore = create(
 
       // App Settings & Cache Actions
       setSettings: (settings) => set({ settings }),
-      setMenuItems: (menuItems) => set({ menuItems }),
+      setMenuItems: (items) =>
+        set({
+          menuItems: items && items.length > 0 ? items : defaultMenuItems,
+        }),
 
       // Auth Actions
       login: (username, role) => {

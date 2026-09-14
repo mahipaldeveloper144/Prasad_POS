@@ -115,9 +115,22 @@ export default function ReportsScreen() {
     .reduce((sum, o) => {
       let orderCost = 0;
       o.items.forEach((item) => {
-        // Find cost price from menu catalog fallback to 45% of price
+        // Find cost price from item itself, or menu catalog with size matching, or fallback to 45%
         const menuMatch = menuItems.find((m) => m.name === item.name);
-        const unitCost = menuMatch ? menuMatch.costPrice || 0 : Math.round(item.price * 0.45);
+        let unitCost = 0;
+        if (item.costPrice) {
+          unitCost = item.costPrice;
+        } else if (menuMatch) {
+          if (item.size === "200 ml" && menuMatch.costPrice200ml) {
+            unitCost = menuMatch.costPrice200ml;
+          } else if (menuMatch.costPrice250ml) {
+            unitCost = menuMatch.costPrice250ml;
+          } else {
+            unitCost = menuMatch.costPrice || 0;
+          }
+        } else {
+          unitCost = Math.round(item.price * 0.45);
+        }
         orderCost += unitCost * item.quantity;
       });
       return sum + orderCost;
@@ -362,7 +375,7 @@ export default function ReportsScreen() {
                                     : "bg-emerald-50 text-emerald-800 border-emerald-200"
                                 }`}
                               >
-                                {i.name} ({i.quantity})
+                                {i.name} {i.size ? `(${i.size})` : ""} × {i.quantity}
                                 <span className={`text-[8px] uppercase font-black px-1 py-0.2 rounded ${isParcel ? "bg-amber-200 text-amber-900" : "bg-emerald-200 text-emerald-900"}`}>
                                   {isParcel ? "Parcel" : "At Cart"}
                                 </span>

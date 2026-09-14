@@ -11,6 +11,7 @@ import {
   saveOrderAction,
   fetchOrdersAction,
 } from "@/app/actions";
+import { defaultMenuItems } from "@/lib/mockData";
 import {
   Search,
   Plus,
@@ -26,6 +27,7 @@ import {
   ShoppingBag,
   Clock,
   UserCheck,
+  Banknote,
 } from "lucide-react";
 import QRCode from "qrcode";
 
@@ -72,6 +74,8 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
 
 // Removed redundant QR effect (finalTotal defined later)
   const [shouldPrint, setShouldPrint] = useState(false);
+  const [cashReceived, setCashReceived] = useState("");
+  const [selectedSizes, setSelectedSizes] = useState({});
 
   // Audio elements for sound notifications
   const chimeAudioRef = useRef(null);
@@ -82,25 +86,42 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
   // Fetch menu and settings
   useEffect(() => {
     async function loadData() {
-      const items = await fetchMenuItemsAction();
-      if (items && items.length > 0) setMenuItems(items);
+      try {
+        const items = await fetchMenuItemsAction();
+        if (items && items.length > 0) {
+          setMenuItems(items);
+        } else if (!menuItems || menuItems.length === 0) {
+          setMenuItems(defaultMenuItems);
+        }
+      } catch (err) {
+        console.error("Error loading menu items:", err);
+        if (!menuItems || menuItems.length === 0) setMenuItems(defaultMenuItems);
+      }
 
-      const dbSettings = await fetchSettingsAction();
-      if (dbSettings) setSettings(dbSettings);
+      try {
+        const dbSettings = await fetchSettingsAction();
+        if (dbSettings) setSettings(dbSettings);
+      } catch (err) {
+        console.error("Error loading settings:", err);
+      }
 
-      const orders = await fetchOrdersAction();
-      if (orders && orders.length > 0) {
-        setRecentOrders(orders.slice(0, 5));
-        // Extrapolate unique customers
-        const uniqueCustomers = [];
-        const seenPhones = new Set();
-        orders.forEach((o) => {
-          if (o.customerPhone && !seenPhones.has(o.customerPhone)) {
-            seenPhones.add(o.customerPhone);
-            uniqueCustomers.push({ name: o.customerName, phone: o.customerPhone });
-          }
-        });
-        setRecentCustomers(uniqueCustomers.slice(0, 6));
+      try {
+        const orders = await fetchOrdersAction();
+        if (orders && orders.length > 0) {
+          setRecentOrders(orders.slice(0, 5));
+          // Extrapolate unique customers
+          const uniqueCustomers = [];
+          const seenPhones = new Set();
+          orders.forEach((o) => {
+            if (o.customerPhone && !seenPhones.has(o.customerPhone)) {
+              seenPhones.add(o.customerPhone);
+              uniqueCustomers.push({ name: o.customerName, phone: o.customerPhone });
+            }
+          });
+          setRecentCustomers(uniqueCustomers.slice(0, 6));
+        }
+      } catch (err) {
+        console.error("Error loading orders:", err);
       }
     }
     loadData();
@@ -116,6 +137,8 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
     0
   );
   const finalTotal = Math.max(0, subtotal - discount);
+  const cashReceivedNum = parseFloat(cashReceived) || 0;
+  const changeToReturn = cashReceived !== "" ? cashReceivedNum - finalTotal : 0;
 
   // Generate UPI QR Code URL when modal opens
   useEffect(() => {
@@ -166,7 +189,9 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
         const tQty = (i.parcelQty || 0) + (i.atCartQty || 0) || i.quantity || 1;
         return {
           name: i.name,
+          size: i.size || "250 ml",
           price: i.price,
+          costPrice: i.costPrice || 0,
           parcelQty: pQty,
           atCartQty: cQty,
           totalQty: tQty,
@@ -179,6 +204,8 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
       total: finalTotal,
       paymentMethod,
       paymentStatus: paymentMethod === "Cash" || isPaidOverride ? "Paid" : "Pending",
+      cashReceived: paymentMethod === "Cash" && cashReceived !== "" ? cashReceivedNum : finalTotal,
+      changeAmount: paymentMethod === "Cash" && cashReceived !== "" ? Math.max(0, changeToReturn) : 0,
       status: "New",
       type: orderType,
       notes,
@@ -202,6 +229,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
           window.print();
         }
         clearCart();
+        setCashReceived("");
         setOrderNumber("");
         setShowQrModal(false);
       }, 300);
@@ -224,32 +252,47 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
       const foundItem = menuItems.find((m) => m.name === item.name) || {
         name: item.name,
         price: item.price,
+        price200ml: item.price200ml || item.price,
+        price250ml: item.price250ml || item.price,
+        costPrice200ml: item.costPrice200ml || 0,
+        costPrice250ml: item.costPrice250ml || 0,
         category: "Cold Coco",
       };
+      const itemSize = item.size || "250 ml";
       const pQty = item.parcelQty !== undefined ? item.parcelQty : (item.orderMode === "PARCEL" ? (item.quantity || 1) : 0);
       const cQty = item.atCartQty !== undefined ? item.atCartQty : (item.orderMode === "AT_CART" || !item.orderMode ? (item.quantity || 1) : 0);
-      for (let k = 0; k < pQty; k++) addParcelItem(foundItem);
-      for (let k = 0; k < cQty; k++) addAtCartItem(foundItem);
+      for (let k = 0; k < pQty; k++) addParcelItem(foundItem, itemSize);
+      for (let k = 0; k < cQty; k++) addAtCartItem(foundItem, itemSize);
     });
   };
 
-  // Map of item name to dual order mode quantities in cart (Parcel & At Cart)
+  // Map of item name and size to dual order mode quantities in cart (Parcel & At Cart)
   const cartItemQuantities = useMemo(() => {
     const map = {};
     cart.forEach((cItem) => {
       if (cItem.name) {
-        map[cItem.name] = {
+        const sizeKey = cItem.size || "250 ml";
+        const compositeKey = `${cItem.name}__${sizeKey}`;
+        map[compositeKey] = {
           parcelQty: cItem.parcelQty || 0,
           atCartQty: cItem.atCartQty || 0,
           totalQty: (cItem.parcelQty || 0) + (cItem.atCartQty || 0),
         };
+        // Also maintain general item count across sizes
+        if (!map[cItem.name]) {
+          map[cItem.name] = { parcelQty: 0, atCartQty: 0, totalQty: 0 };
+        }
+        map[cItem.name].parcelQty += cItem.parcelQty || 0;
+        map[cItem.name].atCartQty += cItem.atCartQty || 0;
+        map[cItem.name].totalQty += (cItem.parcelQty || 0) + (cItem.atCartQty || 0);
       }
     });
     return map;
   }, [cart]);
 
   // Filters menu items based on category and search query
-  const filteredMenuItems = menuItems.filter((item) => {
+  const effectiveMenuItems = menuItems && menuItems.length > 0 ? menuItems : defaultMenuItems;
+  const filteredMenuItems = effectiveMenuItems.filter((item) => {
     const matchesCategory = activeCategory === "All" || item.category === activeCategory;
     const matchesSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -322,14 +365,19 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
           {/* Menu Items Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 overflow-y-auto p-2 pb-10">
             {filteredMenuItems.length > 0 ? (
-              filteredMenuItems.map((item) => {
-                const itemCartData = cartItemQuantities[item.name] || {};
+              filteredMenuItems.map((item, idx) => {
+                const currentSize = selectedSizes[item.name || item.id] || "250 ml";
+                const itemCartData = cartItemQuantities[`${item.name}__${currentSize}`] || {};
                 const parcelQty = itemCartData.parcelQty || 0;
                 const atCartQty = itemCartData.atCartQty || 0;
+                const hasGlassSizes = (item.price200ml && item.price250ml) || item.category === "Cold Coco" || item.category === "Premium" || item.category === "Special" || item.category === "Seasonal";
+                const p200 = item.price200ml || item.price;
+                const p250 = item.price250ml || item.price;
+                const activePrice = currentSize === "200 ml" ? p200 : p250;
 
                 return (
                   <div
-                    key={item.id || item._id}
+                    key={item.id || item._id || item.name || `menu-item-${idx}`}
                     className={`group bg-white rounded-3xl p-5 flex flex-col justify-between transition-all duration-300 relative ${
                       item.availability
                         ? "ring-1 ring-cream-deep/50 hover:ring-coco-accent/50 shadow-sm hover:shadow-xl hover:-translate-y-1"
@@ -370,12 +418,54 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                       <p className="text-[13px] text-coco-light/70 mt-2.5 line-clamp-2 leading-relaxed">
                         {item.description || "Freshly churned delicious chocolate drink."}
                       </p>
+
+                      {/* Glass Size Toggle (200 ml vs 250 ml) */}
+                      {hasGlassSizes && (
+                        <div className="mt-3.5 bg-cream-base/50 p-1 rounded-2xl border border-cream-deep/40 flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSizes((prev) => ({ ...prev, [item.name || item.id]: "200 ml" }));
+                            }}
+                            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                              currentSize === "200 ml"
+                                ? "bg-white text-coco-dark shadow-sm ring-1 ring-amber-500/40"
+                                : "text-coco-light/70 hover:text-coco-dark"
+                            }`}
+                          >
+                            <span>200 ml</span>
+                            <span className={`text-[10px] font-bold ${currentSize === "200 ml" ? "text-amber-800" : "text-coco-light/60"}`}>
+                              ₹{p200}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSizes((prev) => ({ ...prev, [item.name || item.id]: "250 ml" }));
+                            }}
+                            className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                              currentSize === "250 ml"
+                                ? "bg-coco-dark text-white shadow-sm"
+                                : "text-coco-light/70 hover:text-coco-dark"
+                            }`}
+                          >
+                            <span>250 ml</span>
+                            <span className={`text-[10px] font-bold ${currentSize === "250 ml" ? "text-cream-base" : "text-coco-light/60"}`}>
+                              ₹{p250}
+                            </span>
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="mt-5 flex flex-col sm:flex-row sm:items-end justify-between border-t border-cream-base/60 pt-3.5 gap-3">
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-end justify-between border-t border-cream-base/60 pt-3.5 gap-3">
                       <div>
-                        <span className="text-[10px] uppercase tracking-wider text-coco-light/80 font-bold block mb-0.5">Price</span>
-                        <p className="text-xl font-black text-coco-dark tracking-tight">₹{item.price}</p>
+                        <span className="text-[10px] uppercase tracking-wider text-coco-light/80 font-bold block mb-0.5">
+                          Price {hasGlassSizes ? `(${currentSize})` : ""}
+                        </span>
+                        <p className="text-xl font-black text-coco-dark tracking-tight">₹{activePrice}</p>
                       </div>
                       {item.availability ? (
                         <div className="flex items-center gap-2">
@@ -384,14 +474,14 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addParcelItem(item);
+                              addParcelItem(item, currentSize);
                             }}
                             className="relative bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 px-2.5 py-2 rounded-xl font-extrabold text-xs transition-all active:scale-95 flex items-center gap-1.5 shadow-sm"
                           >
                             <span>📦 Parcel</span>
                             {parcelQty > 0 && (
                               <span
-                                key={`pbadge-${item.name}-${parcelQty}`}
+                                key={`pbadge-${item.name}-${currentSize}-${parcelQty}`}
                                 className="absolute -top-2 -right-2 bg-amber-600 text-white font-black text-[10px] min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center shadow-md ring-2 ring-white animate-in zoom-in-50"
                               >
                                 {parcelQty}
@@ -404,14 +494,14 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              addAtCartItem(item);
+                              addAtCartItem(item, currentSize);
                             }}
                             className="relative bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300/80 px-2.5 py-2 rounded-xl font-extrabold text-xs transition-all active:scale-95 flex items-center gap-1.5 shadow-sm"
                           >
                             <span>🥤 At Cart</span>
                             {atCartQty > 0 && (
                               <span
-                                key={`cbadge-${item.name}-${atCartQty}`}
+                                key={`cbadge-${item.name}-${currentSize}-${atCartQty}`}
                                 className="absolute -top-2 -right-2 bg-emerald-600 text-white font-black text-[10px] min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center shadow-md ring-2 ring-white animate-in zoom-in-50"
                               >
                                 {atCartQty}
@@ -460,7 +550,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                         {ro.customerName}
                       </span>
                       <span className="text-xs text-coco-light/80 block mt-1 line-clamp-2 leading-tight">
-                        {ro.items.map((i) => `${i.name} (${i.quantity})`).join(", ")}
+                        {ro.items.map((i) => `${i.name} (${i.size || "250 ml"}) × ${i.quantity}`).join(", ")}
                       </span>
                     </div>
                   </button>
@@ -472,7 +562,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
 
         {/* RIGHT COLUMN: Cart and Billing Panel (Col span 4) */}
         <section id="cart-section" className="lg:col-span-4 relative">
-          <div className="lg:sticky lg:top-6 bg-white/95 backdrop-blur-xl border border-cream-deep/30 rounded-[2rem] p-4 sm:p-6 flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.06)] h-auto lg:h-[calc(100vh-100px)] lg:min-h-[620px] transition-all">
+          <div className="lg:sticky lg:top-6 bg-white/95 backdrop-blur-xl border border-cream-deep/30 rounded-[2rem] p-4 sm:p-6 flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.06)] h-auto  lg:min-h-[620px] transition-all">
             
             {/* Cart Header */}
             <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-cream-base/60">
@@ -488,7 +578,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
             </div>
 
             {/* Cart Items List */}
-            <div className="max-h-[280px] lg:max-h-none lg:flex-1 overflow-y-auto my-3 sm:my-4 pr-1.5 scrollbar-thin">
+            <div className="max-h-[280px] lg:max-h-none lg:flex-1 overflow-y-auto my-3 sm:my-4 p-1.5 scrollbar-thin shadow border border-gray-200 rounded-lg">
               {cart.length > 0 ? (
                 <div className="flex flex-col gap-3">
                   {cart.map((item, idx) => {
@@ -499,13 +589,22 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
 
                     return (
                       <div
-                        key={`${item.name}-${idx}`}
+                        key={`${item.name}-${item.size || "250 ml"}-${idx}`}
                         className="flex flex-col p-3.5 bg-cream-light/30 rounded-2xl border border-cream-deep/30 hover:border-cream-deep/70 transition-colors gap-2.5 shadow-sm"
                       >
-                        {/* Top Row: Name, Item Price, Total Price & Delete Button */}
+                        {/* Top Row: Name, Size, Item Price, Total Price & Delete Button */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-extrabold text-sm text-coco-dark truncate">{item.name}</h4>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="font-extrabold text-sm text-coco-dark truncate">{item.name}</h4>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                item.size === "200 ml"
+                                  ? "bg-amber-100 text-amber-900 border border-amber-300/80"
+                                  : "bg-coco-light/20 text-coco-dark border border-coco-medium/30"
+                              }`}>
+                                {item.size || "250 ml"}
+                              </span>
+                            </div>
                             <p className="text-[11px] text-coco-light font-bold">₹{item.price} each</p>
                           </div>
 
@@ -710,7 +809,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
               </div>
 
               {/* Advanced Payment & Print Toggles */}
-              <div className="mt-3 bg-white p-1.5 rounded-2xl border border-cream-deep/40 shadow-sm flex flex-col gap-1.5">
+              <div className="mt-3 bg-white p-2 sm:p-2.5 rounded-2xl border border-cream-deep/40 shadow-sm flex flex-col gap-2">
                 {/* Segmented Control for Payment Method */}
                 <div className="flex relative bg-cream-base/30 rounded-xl p-1">
                   {/* Sliding background */}
@@ -739,6 +838,101 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                     UPI Pay
                   </button>
                 </div>
+
+                {/* Cash Change Calculator (when Cash Pay is selected) */}
+                {paymentMethod === "Cash" && (
+                  <div className="p-2.5 bg-cream-base/20 rounded-xl border border-cream-deep/30 flex flex-col gap-2 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold text-coco-dark flex items-center gap-1.5">
+                        <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                        Cash Tendered / Received
+                      </span>
+                      {cashReceived !== "" && (
+                        <button
+                          type="button"
+                          onClick={() => setCashReceived("")}
+                          className="text-[10px] text-coco-light hover:text-red-500 font-bold transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Input Field */}
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-coco-medium">
+                        ₹
+                      </span>
+                      <input
+                        type="number"
+                        placeholder={finalTotal > 0 ? `Enter note (e.g. 500)` : "Cash amount received"}
+                        value={cashReceived}
+                        onChange={(e) => setCashReceived(e.target.value)}
+                        className="w-full pl-7 pr-3 py-1.5 text-xs font-black text-coco-dark bg-white rounded-lg border border-cream-deep/50 focus:outline-none focus:border-coco-accent transition-colors"
+                      />
+                    </div>
+
+                    {/* Quick Note Suggestions */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {finalTotal > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setCashReceived(String(finalTotal))}
+                          className={`px-2 py-1 text-[10px] font-black rounded-lg border transition-all ${
+                            Number(cashReceived) === finalTotal
+                              ? "bg-coco-accent text-white border-coco-accent shadow-sm"
+                              : "bg-white text-coco-medium border-cream-deep/50 hover:bg-cream-base/60"
+                          }`}
+                        >
+                          Exact ₹{finalTotal}
+                        </button>
+                      )}
+                      {[100, 200, 500].map((note) => (
+                        <button
+                          key={note}
+                          type="button"
+                          onClick={() => setCashReceived(String(note))}
+                          className={`px-2 py-1 text-[10px] font-black rounded-lg border transition-all ${
+                            Number(cashReceived) === note
+                              ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                              : "bg-white text-coco-medium border-cream-deep/50 hover:bg-cream-base/60"
+                          }`}
+                        >
+                          ₹{note}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Change to Return Display Banner */}
+                    {cashReceived !== "" && Number(cashReceived) > 0 && (
+                      <div
+                        className={`p-2.5 rounded-xl flex items-center justify-between border transition-all ${
+                          changeToReturn >= 0
+                            ? "bg-emerald-50 border-emerald-300 text-emerald-950"
+                            : "bg-amber-50 border-amber-300 text-amber-950"
+                        }`}
+                      >
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-wider">
+                            {changeToReturn >= 0 ? "Change to Return" : "Due / Short Amount"}
+                          </div>
+                          <div className="text-[10px] font-semibold opacity-80">
+                            {changeToReturn >= 0
+                              ? `Customer gave ₹${cashReceivedNum} - Bill ₹${finalTotal}`
+                              : `Need ₹${Math.abs(changeToReturn)} more from customer`}
+                          </div>
+                        </div>
+                        <div
+                          className={`text-lg font-black tabular-nums ${
+                            changeToReturn >= 0 ? "text-emerald-700" : "text-amber-700"
+                          }`}
+                        >
+                          ₹{Math.abs(changeToReturn)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Animated Print Toggle */}
                 <div className="flex items-center justify-between px-3 py-2 cursor-pointer rounded-xl hover:bg-cream-base/50 transition-colors group" onClick={() => setShouldPrint(!shouldPrint)}>
@@ -799,7 +993,12 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                 ) : (
                   <>
                     {shouldPrint ? <Printer className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
-                    {shouldPrint ? "Pay & Print Bill" : "Pay Only"} (₹{finalTotal})
+                    <span>{shouldPrint ? "Pay & Print Bill" : "Pay Only"} (₹{finalTotal})</span>
+                    {paymentMethod === "Cash" && cashReceived !== "" && changeToReturn > 0 && (
+                      <span className="ml-1.5 px-2 py-0.5 bg-white/25 rounded-md text-xs font-black">
+                        Change: ₹{changeToReturn}
+                      </span>
+                    )}
                   </>
                 )}
               </button>
@@ -935,9 +1134,11 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                 const amt = item.subtotal || item.price * tQty;
 
                 return (
-                  <tr key={`${item.name}-${idx}`} style={{ borderBottom: "1px dotted #eee" }}>
+                  <tr key={`${item.name}-${item.size || "250 ml"}-${idx}`} style={{ borderBottom: "1px dotted #eee" }}>
                     <td style={{ padding: "3px 0" }}>
-                      <div style={{ fontWeight: "bold" }}>{item.name}</div>
+                      <div style={{ fontWeight: "bold" }}>
+                        {item.name} {item.size ? `(${item.size})` : ""}
+                      </div>
                       <div style={{ fontSize: "8.5px", color: "#555" }}>
                         {pQty > 0 ? `Parcel: ${pQty}` : ""}
                         {pQty > 0 && cQty > 0 ? ` | ` : ""}
@@ -967,6 +1168,18 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
               <span>GRAND TOTAL:</span>
               <span style={{ float: "right" }}>₹{lastPlacedOrder.total}</span>
             </div>
+            {lastPlacedOrder.paymentMethod === "Cash" && lastPlacedOrder.cashReceived > 0 && (
+              <>
+                <div style={{ display: "flex", justifyContent: "between", width: "100%", fontSize: "9.5px", marginTop: "3px" }}>
+                  <span>Cash Tendered:</span>
+                  <span style={{ float: "right" }}>₹{lastPlacedOrder.cashReceived}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "between", width: "100%", fontWeight: "bold", fontSize: "10.5px" }}>
+                  <span>Change Return:</span>
+                  <span style={{ float: "right" }}>₹{lastPlacedOrder.changeAmount}</span>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="text-center" style={{ marginTop: "12px", borderTop: "1px dashed black", paddingTop: "6px", fontSize: "9px" }}>

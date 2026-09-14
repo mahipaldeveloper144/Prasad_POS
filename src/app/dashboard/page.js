@@ -97,11 +97,12 @@ export default function AdminDashboard() {
   const itemSalesMap = {};
   orders.forEach((o) => {
     o.items.forEach((item) => {
-      if (itemSalesMap[item.name]) {
-        itemSalesMap[item.name].quantity += item.quantity;
-        itemSalesMap[item.name].revenue += item.subtotal;
+      const label = item.size ? `${item.name} (${item.size})` : item.name;
+      if (itemSalesMap[label]) {
+        itemSalesMap[label].quantity += item.quantity;
+        itemSalesMap[label].revenue += item.subtotal;
       } else {
-        itemSalesMap[item.name] = { name: item.name, quantity: item.quantity, revenue: item.subtotal };
+        itemSalesMap[label] = { name: label, quantity: item.quantity, revenue: item.subtotal };
       }
     });
   });

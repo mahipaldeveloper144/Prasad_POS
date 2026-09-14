@@ -38,6 +38,10 @@ export default function MenuManagement() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState(0);
   const [costPrice, setCostPrice] = useState(0);
+  const [price200ml, setPrice200ml] = useState(0);
+  const [costPrice200ml, setCostPrice200ml] = useState(0);
+  const [price250ml, setPrice250ml] = useState(0);
+  const [costPrice250ml, setCostPrice250ml] = useState(0);
   const [category, setCategory] = useState("Cold Coco");
   const [preparationTime, setPreparationTime] = useState(2);
   const [availability, setAvailability] = useState(true);
@@ -71,6 +75,10 @@ export default function MenuManagement() {
     setDescription("");
     setPrice(0);
     setCostPrice(0);
+    setPrice200ml(0);
+    setCostPrice200ml(0);
+    setPrice250ml(0);
+    setCostPrice250ml(0);
     setCategory("Cold Coco");
     setPreparationTime(2);
     setAvailability(true);
@@ -86,8 +94,12 @@ export default function MenuManagement() {
     setName(item.name);
     setGujaratiName(item.gujaratiName || "");
     setDescription(item.description || "");
-    setPrice(item.price);
-    setCostPrice(item.costPrice || 0);
+    setPrice(item.price250ml || item.price || 0);
+    setCostPrice(item.costPrice250ml || item.costPrice || 0);
+    setPrice200ml(item.price200ml || item.price || 0);
+    setCostPrice200ml(item.costPrice200ml || item.costPrice || 0);
+    setPrice250ml(item.price250ml || item.price || 0);
+    setCostPrice250ml(item.costPrice250ml || item.costPrice || 0);
     setCategory(item.category);
     setPreparationTime(item.preparationTime || 2);
     setAvailability(item.availability);
@@ -107,13 +119,22 @@ export default function MenuManagement() {
       .map((t) => t.trim())
       .filter((t) => t.length > 0);
 
+    const p200 = Number(price200ml) || Number(price);
+    const cp200 = Number(costPrice200ml) || Number(costPrice);
+    const p250 = Number(price250ml) || Number(price);
+    const cp250 = Number(costPrice250ml) || Number(costPrice);
+
     const itemData = {
       id: itemId,
       name,
       gujaratiName,
       description,
-      price: Number(price),
-      costPrice: Number(costPrice),
+      price: p250 || p200 || Number(price),
+      costPrice: cp250 || cp200 || Number(costPrice),
+      price200ml: p200,
+      costPrice200ml: cp200,
+      price250ml: p250,
+      costPrice250ml: cp250,
       category,
       preparationTime: Number(preparationTime),
       availability,
@@ -138,8 +159,12 @@ export default function MenuManagement() {
     setName(`${item.name} (Copy)`);
     setGujaratiName(item.gujaratiName ? `${item.gujaratiName} (નકલ)` : "");
     setDescription(item.description || "");
-    setPrice(item.price);
-    setCostPrice(item.costPrice || 0);
+    setPrice(item.price250ml || item.price || 0);
+    setCostPrice(item.costPrice250ml || item.costPrice || 0);
+    setPrice200ml(item.price200ml || item.price || 0);
+    setCostPrice200ml(item.costPrice200ml || item.costPrice || 0);
+    setPrice250ml(item.price250ml || item.price || 0);
+    setCostPrice250ml(item.costPrice250ml || item.costPrice || 0);
     setCategory(item.category);
     setPreparationTime(item.preparationTime || 2);
     setAvailability(item.availability);
@@ -167,17 +192,29 @@ export default function MenuManagement() {
     let updateCount = 0;
     for (let item of menuItems) {
       let newPrice = item.price;
+      let newPrice200 = item.price200ml || item.price;
+      let newPrice250 = item.price250ml || item.price;
+
       if (bulkUpdateType === "Flat") {
         newPrice += Number(bulkUpdateAmount);
+        newPrice200 += Number(bulkUpdateAmount);
+        newPrice250 += Number(bulkUpdateAmount);
       } else {
-        newPrice = Math.round(newPrice * (1 + Number(bulkUpdateAmount) / 100));
+        const factor = 1 + Number(bulkUpdateAmount) / 100;
+        newPrice = Math.round(newPrice * factor);
+        newPrice200 = Math.round(newPrice200 * factor);
+        newPrice250 = Math.round(newPrice250 * factor);
       }
       // Guarantee positive price
       newPrice = Math.max(0, newPrice);
+      newPrice200 = Math.max(0, newPrice200);
+      newPrice250 = Math.max(0, newPrice250);
 
       await saveMenuItemAction({
         id: item.id || item._id,
         price: newPrice,
+        price200ml: newPrice200,
+        price250ml: newPrice250,
       });
       updateCount++;
     }
@@ -249,30 +286,77 @@ export default function MenuManagement() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-coco-light block mb-1">
-                  Price (₹) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={price || ""}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-cream-deep focus:outline-none focus:ring-2 focus:ring-coco-accent"
-                  required
-                />
+            {/* Glass Size Pricing (200 ml and 250 ml) */}
+            <div className="bg-cream-base/40 p-3.5 rounded-2xl border border-cream-deep/50 flex flex-col gap-3">
+              <span className="text-xs font-black text-coco-dark uppercase tracking-wider flex items-center gap-1.5">
+                🥛 Glass Size Pricing
+              </span>
+
+              {/* 200 ml Row */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-[11px] font-extrabold text-amber-900 block mb-1">
+                    200 ml Price (₹) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={price200ml || ""}
+                    onChange={(e) => {
+                      setPrice200ml(e.target.value);
+                      if (!price) setPrice(e.target.value);
+                    }}
+                    placeholder="e.g. 40"
+                    className="w-full px-3 py-1.5 rounded-xl border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500 text-xs font-bold"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-extrabold text-coco-light block mb-1">
+                    200 ml Cost (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={costPrice200ml || ""}
+                    onChange={(e) => setCostPrice200ml(e.target.value)}
+                    placeholder="e.g. 18"
+                    className="w-full px-3 py-1.5 rounded-xl border border-cream-deep focus:outline-none focus:ring-2 focus:ring-coco-accent text-xs"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-coco-light block mb-1">
-                  Cost Price (₹)
-                </label>
-                <input
-                  type="number"
-                  value={costPrice || ""}
-                  onChange={(e) => setCostPrice(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-cream-deep focus:outline-none focus:ring-2 focus:ring-coco-accent"
-                />
+              {/* 250 ml Row */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-[11px] font-extrabold text-coco-dark block mb-1">
+                    250 ml Price (₹) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={price250ml || ""}
+                    onChange={(e) => {
+                      setPrice250ml(e.target.value);
+                      setPrice(e.target.value);
+                    }}
+                    placeholder="e.g. 50"
+                    className="w-full px-3 py-1.5 rounded-xl border border-cream-deep focus:outline-none focus:ring-2 focus:ring-coco-accent text-xs font-bold"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-extrabold text-coco-light block mb-1">
+                    250 ml Cost (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={costPrice250ml || ""}
+                    onChange={(e) => {
+                      setCostPrice250ml(e.target.value);
+                      setCostPrice(e.target.value);
+                    }}
+                    placeholder="e.g. 22"
+                    className="w-full px-3 py-1.5 rounded-xl border border-cream-deep focus:outline-none focus:ring-2 focus:ring-coco-accent text-xs"
+                  />
+                </div>
               </div>
             </div>
 
@@ -471,10 +555,28 @@ export default function MenuManagement() {
                               </div>
                             </div>
                           </td>
-                          <td className="py-3.5 px-3 font-extrabold text-sm">₹{item.price}</td>
                           <td className="py-3.5 px-3">
-                            <span className="font-bold text-green-700">₹{profit}</span>
-                            <span className="block text-[9px] text-coco-light">Cost: ₹{item.costPrice || 0}</span>
+                            {item.price200ml && item.price250ml ? (
+                              <div className="flex flex-col gap-0.5 whitespace-nowrap">
+                                <span className="text-[11px] font-bold text-amber-900">200ml: ₹{item.price200ml}</span>
+                                <span className="text-xs font-black text-coco-dark">250ml: ₹{item.price250ml}</span>
+                              </div>
+                            ) : (
+                              <span className="font-extrabold text-sm text-coco-dark">₹{item.price}</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-3">
+                            {item.price200ml && item.price250ml ? (
+                              <div className="flex flex-col gap-0.5 whitespace-nowrap">
+                                <span className="text-[11px] font-bold text-green-700">200ml: +₹{item.price200ml - (item.costPrice200ml || 0)}</span>
+                                <span className="text-xs font-bold text-green-700">250ml: +₹{item.price250ml - (item.costPrice250ml || 0)}</span>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="font-bold text-green-700">₹{profit}</span>
+                                <span className="block text-[9px] text-coco-light">Cost: ₹{item.costPrice || 0}</span>
+                              </>
+                            )}
                           </td>
                           <td className="py-3.5 px-3">
                             <span

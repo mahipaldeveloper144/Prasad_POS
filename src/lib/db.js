@@ -18,6 +18,10 @@ const MenuSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     price: { type: Number, required: true },
     costPrice: { type: Number, required: true },
+    price200ml: { type: Number, default: 0 },
+    costPrice200ml: { type: Number, default: 0 },
+    price250ml: { type: Number, default: 0 },
+    costPrice250ml: { type: Number, default: 0 },
     category: { type: String, required: true },
     preparationTime: { type: Number, default: 2 },
     availability: { type: Boolean, default: true },
@@ -37,9 +41,13 @@ const OrderSchema = new mongoose.Schema(
     items: [
       {
         name: { type: String, required: true },
+        size: { type: String, default: "250 ml" },
         price: { type: Number, required: true },
+        costPrice: { type: Number, default: 0 },
         quantity: { type: Number, required: true },
         subtotal: { type: Number, required: true },
+        parcelQty: { type: Number, default: 0 },
+        atCartQty: { type: Number, default: 0 },
         orderMode: { type: String, enum: ["AT_CART", "PARCEL"], default: "AT_CART" },
       },
     ],
@@ -48,6 +56,8 @@ const OrderSchema = new mongoose.Schema(
     total: { type: Number, required: true },
     paymentMethod: { type: String, enum: ["Cash", "UPI"], required: true },
     paymentStatus: { type: String, enum: ["Pending", "Paid"], required: true },
+    cashReceived: { type: Number, default: 0 },
+    changeAmount: { type: Number, default: 0 },
     upiReference: { type: String, default: "" },
     status: {
       type: String,

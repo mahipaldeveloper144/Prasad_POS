@@ -99,7 +99,7 @@ export default function KitchenDisplay() {
   return (
     <div
       ref={containerRef}
-      className="dark-theme-kds flex flex-col min-h-screen bg-[#3F1A13] text-[#fcf8f6] font-sans overflow-hidden select-none"
+      className="dark-theme-kds flex flex-col min-h-screen md:h-screen bg-[#3F1A13] text-[#fcf8f6] font-sans overflow-y-auto md:overflow-hidden select-none"
     >
       {/* Hidden audio beep */}
       <audio
@@ -109,47 +109,56 @@ export default function KitchenDisplay() {
       ></audio>
 
       {/* KDS Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-[#21120a] border-b border-[#331d12] shadow-md shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#8c5b47] p-2 rounded-xl text-white">
-            <Tv className="w-6 h-6 animate-pulse" />
+      <header className="flex items-center justify-between pl-14 pr-3 sm:px-6 py-2.5 sm:py-3.5 bg-[#21120a] border-b border-[#331d12] shadow-md shrink-0 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="bg-[#8c5b47] p-1.5 sm:p-2 rounded-xl text-white shrink-0">
+            <Tv className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
           </div>
-          <div>
-            <h1 className="text-xl font-extrabold tracking-wide uppercase">
-              Kitchen Display System
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-lg md:text-xl font-black tracking-wide uppercase truncate text-white leading-tight">
+              <span className="sm:hidden">Kitchen TV</span>
+              <span className="hidden sm:inline">Kitchen Display System</span>
             </h1>
-            <p className="text-xs text-[#e2d3c1] font-semibold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-ping"></span>
-              Live TV Mode &bull; Auto-refreshing
+            <p className="text-[10px] sm:text-xs text-[#e2d3c1] font-semibold flex items-center gap-1.5 truncate">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-ping shrink-0"></span>
+              <span className="sm:hidden">Live &bull; Auto-sync</span>
+              <span className="hidden sm:inline">Live TV Mode &bull; Auto-refreshing</span>
             </p>
           </div>
         </div>
 
         {/* Action controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {/* Refresh button */}
           <button
             onClick={() => loadOrders(false)}
-            className="bg-[#331d12] hover:bg-[#4d2d1d] text-[#fcf8f6] p-2.5 rounded-xl border border-[#4d2d1d]/40 transition-colors"
+            className="bg-[#331d12] hover:bg-[#4d2d1d] active:scale-95 text-[#fcf8f6] p-2 sm:p-2.5 rounded-xl border border-[#4d2d1d]/40 transition-all shadow-sm"
             title="Force Refresh"
+            aria-label="Force Refresh"
           >
-            <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? "animate-spin" : ""}`} />
           </button>
 
           {/* Sound toggle */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="bg-[#331d12] hover:bg-[#4d2d1d] text-[#fcf8f6] px-4 py-2.5 rounded-xl border border-[#4d2d1d]/40 transition-all flex items-center gap-2 text-sm font-bold"
+            className={`p-2 sm:px-3.5 sm:py-2.5 rounded-xl border transition-all active:scale-95 flex items-center gap-1.5 text-xs sm:text-sm font-bold shadow-sm ${
+              soundEnabled
+                ? "bg-[#331d12] hover:bg-[#4d2d1d] text-[#fcf8f6] border-[#4d2d1d]/40"
+                : "bg-red-950/40 hover:bg-red-900/40 text-red-300 border-red-800/40"
+            }`}
+            title={soundEnabled ? "Sound Enabled" : "Sound Muted"}
+            aria-label={soundEnabled ? "Mute Sound" : "Enable Sound"}
           >
             {soundEnabled ? (
               <>
-                <Volume2 className="w-5 h-5 text-[#8c5b47]" />
-                <span>Sound On</span>
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 shrink-0" />
+                <span className="hidden sm:inline">Sound On</span>
               </>
             ) : (
               <>
-                <VolumeX className="w-5 h-5 text-gray-500" />
-                <span>Sound Muted</span>
+                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 shrink-0" />
+                <span className="hidden sm:inline">Muted</span>
               </>
             )}
           </button>
@@ -157,16 +166,18 @@ export default function KitchenDisplay() {
           {/* Fullscreen button */}
           <button
             onClick={toggleFullscreen}
-            className="bg-[#8c5b47] hover:bg-[#a16d57] text-white px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm font-extrabold shadow-md"
+            className="bg-[#8c5b47] hover:bg-[#a16d57] active:scale-95 text-white p-2 sm:px-3.5 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 text-xs sm:text-sm font-extrabold shadow-md"
+            title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
           >
-            <Maximize className="w-5 h-5" />
-            <span>{isFullscreen ? "Exit TV Mode" : "TV Fullscreen"}</span>
+            <Maximize className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+            <span className="hidden sm:inline">{isFullscreen ? "Exit TV" : "TV Mode"}</span>
           </button>
 
-          {/* Back link */}
+          {/* Back link - desktop only */}
           <Link
             href="/"
-            className="text-[#e2d3c1] hover:text-white px-3 py-2 text-sm font-bold border-l border-[#331d12]"
+            className="hidden md:flex text-[#e2d3c1] hover:text-white px-3 py-2 text-sm font-bold border-l border-[#331d12] transition-colors"
           >
             POS Screen
           </Link>
@@ -174,7 +185,7 @@ export default function KitchenDisplay() {
       </header>
 
       {/* Kanban Grid */}
-      <main className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 p-6 overflow-hidden min-h-0">
+      <main className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-3 sm:p-6 pb-24 md:pb-6 overflow-y-auto md:overflow-hidden min-h-0">
         {/* COLUMN 1: Preparing */}
         <section className="flex flex-col bg-[#21120a]/40 border border-[#F7E1B8] rounded-3xl p-5 overflow-hidden">
           <div className="flex justify-between items-center pb-3 border-b border-[#331d12] shrink-0">
@@ -238,10 +249,19 @@ export default function KitchenDisplay() {
                         return (
                           <div key={idx} className="flex flex-col gap-1 pb-2 border-b border-[#331d12]/40 last:border-0 last:pb-0">
                             <div className="flex justify-between items-center text-[#fcf8f6]">
-                              <span className="font-extrabold text-base sm:text-lg flex-1">
-                                {item.name}
-                              </span>
-                              <span className="text-xs font-black bg-[#331d12] text-amber-200 px-2.5 py-0.5 rounded-md border border-[#8c5b47]/40">
+                              <div className="flex items-center gap-2 flex-1 flex-wrap">
+                                <span className="font-extrabold text-base sm:text-lg">
+                                  {item.name}
+                                </span>
+                                <span className={`text-xs font-black px-2 py-0.5 rounded-md border ${
+                                  item.size === "200 ml"
+                                    ? "bg-amber-400/20 text-amber-300 border-amber-400/40"
+                                    : "bg-[#e2d3c1]/20 text-[#fcf8f6] border-[#e2d3c1]/30"
+                                }`}>
+                                  🥛 {item.size || "250 ml"}
+                                </span>
+                              </div>
+                              <span className="text-xs font-black bg-[#331d12] text-white-200 px-2.5 py-0.5 rounded-md border border-[#8c5b47]/40">
                                 Total: {totalCount}
                               </span>
                             </div>
@@ -347,9 +367,18 @@ export default function KitchenDisplay() {
                       return (
                         <div key={idx} className="flex flex-col gap-1 pb-2 border-b border-[#331d12]/40 last:border-0 last:pb-0">
                           <div className="flex justify-between items-center text-[#fcf8f6]">
-                            <span className="font-bold text-[#e2d3c1] text-base flex-1">
-                              {item.name}
-                            </span>
+                            <div className="flex items-center gap-2 flex-1 flex-wrap">
+                              <span className="font-bold text-[#e2d3c1] text-base">
+                                {item.name}
+                              </span>
+                              <span className={`text-[11px] font-black px-2 py-0.5 rounded-md border ${
+                                item.size === "200 ml"
+                                  ? "bg-amber-400/20 text-amber-300 border-amber-400/40"
+                                  : "bg-[#e2d3c1]/20 text-[#fcf8f6] border-[#e2d3c1]/30"
+                              }`}>
+                                🥛 {item.size || "250 ml"}
+                              </span>
+                            </div>
                             <span className="text-xs font-black bg-[#331d12] text-amber-200 px-2.5 py-0.5 rounded-md border border-[#8c5b47]/40">
                               Total: {totalCount}
                             </span>
