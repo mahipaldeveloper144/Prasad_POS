@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { fetchOrdersAction, updateOrderStatusAction } from "@/app/actions";
 import { Tv, Volume2, VolumeX, Maximize, Play, Check, ChevronRight, RefreshCw, Clock } from "lucide-react";
 import Link from "next/link";
+import StaffGuard from "@/components/StaffGuard";
 
 export default function KitchenDisplay() {
   const [orders, setOrders] = useState([]);
@@ -97,10 +98,11 @@ export default function KitchenDisplay() {
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="dark-theme-kds flex flex-col min-h-screen md:h-screen bg-[#3F1A13] text-[#fcf8f6] font-sans overflow-y-auto md:overflow-hidden select-none"
-    >
+    <StaffGuard>
+      <div
+        ref={containerRef}
+        className="dark-theme-kds flex flex-col min-h-screen md:h-screen bg-[#3F1A13] text-[#fcf8f6] font-sans overflow-y-auto md:overflow-hidden select-none"
+      >
       {/* Hidden audio beep */}
       <audio
         ref={beepAudioRef}
@@ -438,5 +440,6 @@ export default function KitchenDisplay() {
         </section>
       </main>
     </div>
+    </StaffGuard>
   );
 }

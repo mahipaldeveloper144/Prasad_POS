@@ -107,5 +107,6 @@ export const defaultSettings = {
   googleReviewUrl: "https://g.page/r/your-review-code",
   enableSound: true,
   printerWidth: "58mm",
-  adminPassword: "Secure@098"
+  adminPassword: "Secure@098",
+  cashierPassword: "1234"
 };

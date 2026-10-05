@@ -60,12 +60,14 @@ export default function Sidebar() {
     router.push("/login");
   };
 
+  const userRole = currentUser?.role || "Customer";
+
   const navLinks = [
     {
       href: "/",
-      label: "POS Cashier",
+      label: userRole === "Customer" ? "Order Coco" : "POS Cashier",
       icon: ShoppingBag,
-      role: ["Admin", "Cashier"],
+      role: ["Admin", "Cashier", "Customer"],
     },
     {
       href: "/kitchen",
@@ -104,8 +106,6 @@ export default function Sidebar() {
       role: ["Admin"],
     },
   ];
-
-  const userRole = currentUser?.role || "Cashier";
 
   const visibleLinks = navLinks.filter((link) =>
     link.role.includes(userRole)
@@ -222,13 +222,13 @@ export default function Sidebar() {
         <div className="p-4 border-t border-coco-medium/50 space-y-4">
           <div className="flex flex-col">
             <span className="text-xs text-cream-deep font-semibold">
-              Logged in as
+              {currentUser ? "Logged in as" : "Current Terminal Mode"}
             </span>
 
             <span className="text-sm text-cream-light font-bold truncate">
               {currentUser
                 ? `${currentUser.username} (${currentUser.role})`
-                : "Cashier Mode"}
+                : "Customer Self-Order"}
             </span>
           </div>
 
@@ -236,10 +236,10 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full bg-coco-medium border border-coco-accent/30 text-cream-deep hover:bg-coco-light hover:text-cream-light p-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm font-bold shadow-sm"
+              className="w-full bg-coco-medium border border-coco-accent/30 text-cream-deep hover:bg-coco-light hover:text-cream-light p-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm font-bold shadow-sm cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <span>{currentUser.role === "Cashier" ? "Lock / Customer Mode" : "Logout"}</span>
             </button>
           ) : (
             <Link
@@ -248,7 +248,7 @@ export default function Sidebar() {
               className="w-full bg-coco-accent text-cream-light hover:bg-coco-light p-3 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm font-bold shadow-sm"
             >
               <LogIn className="w-4 h-4" />
-              <span>Admin Login</span>
+              <span>Staff / Cashier Login</span>
             </Link>
           )}
         </div>
@@ -344,12 +344,12 @@ export default function Sidebar() {
           <div className="p-4 border-t border-coco-medium/50 space-y-3">
             <div className="flex flex-col">
               <span className="text-xs text-cream-deep font-semibold">
-                Logged in as
+                {currentUser ? "Logged in as" : "Current Terminal Mode"}
               </span>
               <span className="text-sm text-cream-light font-bold truncate">
                 {currentUser
                   ? `${currentUser.username} (${currentUser.role})`
-                  : "Cashier Mode"}
+                  : "Customer Self-Order"}
               </span>
             </div>
 
@@ -358,10 +358,10 @@ export default function Sidebar() {
                 type="button"
                 onClick={handleLogout}
                 className="w-full bg-coco-medium border border-coco-accent/30 text-cream-deep hover:bg-coco-light hover:text-cream-light p-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-xs font-bold shadow-sm cursor-pointer"
-                title="Logout"
+                title={currentUser.role === "Cashier" ? "Lock / Switch to Customer Mode" : "Logout"}
               >
                 <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                <span>{currentUser.role === "Cashier" ? "Lock / Customer Mode" : "Logout"}</span>
               </button>
             ) : (
               <Link
@@ -369,7 +369,7 @@ export default function Sidebar() {
                 className="w-full bg-coco-accent text-cream-light hover:bg-coco-light p-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-xs font-bold shadow-sm"
               >
                 <LogIn className="w-4 h-4" />
-                <span>Admin Login</span>
+                <span>Staff / Cashier Login</span>
               </Link>
             )}
           </div>
@@ -385,7 +385,7 @@ export default function Sidebar() {
               <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-coco-dark text-cream-light text-xs font-bold rounded-lg shadow-xl border border-coco-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
                 {currentUser
                   ? `${currentUser.username} (${currentUser.role})`
-                  : "Cashier Mode"}
+                  : "Customer Self-Order Mode"}
               </div>
             </div>
 
@@ -395,12 +395,12 @@ export default function Sidebar() {
                   type="button"
                   onClick={handleLogout}
                   className="w-9 h-9 bg-coco-medium border border-coco-accent/30 text-cream-deep hover:bg-coco-light hover:text-cream-light rounded-xl transition-colors flex items-center justify-center shadow-sm cursor-pointer"
-                  aria-label="Logout"
+                  aria-label={currentUser.role === "Cashier" ? "Lock / Customer Mode" : "Logout"}
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
                 <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-coco-dark text-cream-light text-xs font-bold rounded-lg shadow-xl border border-coco-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
-                  Logout
+                  {currentUser.role === "Cashier" ? "Lock / Customer Mode" : "Logout"}
                 </div>
               </div>
             ) : (
@@ -408,12 +408,12 @@ export default function Sidebar() {
                 <Link
                   href="/login"
                   className="w-9 h-9 bg-coco-accent text-cream-light hover:bg-coco-light rounded-xl transition-colors flex items-center justify-center shadow-sm"
-                  aria-label="Admin Login"
+                  aria-label="Staff Login"
                 >
                   <LogIn className="w-4 h-4" />
                 </Link>
                 <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-coco-dark text-cream-light text-xs font-bold rounded-lg shadow-xl border border-coco-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50">
-                  Admin Login
+                  Staff / Cashier Login
                 </div>
               </div>
             )}
@@ -447,6 +447,16 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {!currentUser && (
+          <Link
+            href="/login"
+            className="flex flex-col items-center gap-1 p-2 rounded-lg text-[10px] sm:text-xs transition-colors text-cream-deep hover:text-cream-light"
+          >
+            <LogIn className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="truncate max-w-[60px] text-center">Staff</span>
+          </Link>
+        )}
       </div>
     </>
   );

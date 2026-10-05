@@ -28,6 +28,8 @@ export const useCartStore = create(
         googleReviewUrl: "",
         enableSound: true,
         printerWidth: "58mm",
+        adminPassword: "Secure@098",
+        cashierPassword: "1234",
       },
 
       // Auth Session State

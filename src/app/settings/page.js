@@ -15,6 +15,10 @@ import {
   Check,
   RefreshCcw,
   Sliders,
+  Shield,
+  Lock,
+  KeyRound,
+  UserCheck,
 } from "lucide-react";
 
 export default function SettingsPanel() {
@@ -38,6 +42,7 @@ export default function SettingsPanel() {
   const [enableSound, setEnableSound] = useState(true);
   const [printerWidth, setPrinterWidth] = useState("58mm");
   const [adminPassword, setAdminPassword] = useState("Secure@098");
+  const [cashierPassword, setCashierPassword] = useState("1234");
 
   useEffect(() => {
     async function loadSettings() {
@@ -56,6 +61,7 @@ export default function SettingsPanel() {
         setEnableSound(dbSettings.enableSound !== false);
         setPrinterWidth(dbSettings.printerWidth || "58mm");
         setAdminPassword(dbSettings.adminPassword || "Secure@098");
+        setCashierPassword(dbSettings.cashierPassword || "1234");
       }
     }
     loadSettings();
@@ -79,6 +85,7 @@ export default function SettingsPanel() {
       enableSound,
       printerWidth,
       adminPassword,
+      cashierPassword,
     };
 
     const saved = await saveSettingsAction(updated);
@@ -289,23 +296,67 @@ export default function SettingsPanel() {
             </div>
           </div>
 
-          {/* SECTION 5: ADMIN SECURITY & AUTHENTICATION */}
-          <div className="bg-white border border-cream-deep/40 rounded-3xl p-5 shadow-sm space-y-4">
+          {/* SECTION 5: ACCOUNT SECURITY & AUTHENTICATION */}
+          <div className="bg-white border border-cream-deep/40 rounded-3xl p-5 shadow-sm space-y-5">
             <h2 className="font-extrabold text-sm text-coco-medium flex items-center gap-2 border-b border-cream-base pb-3">
-              <Sliders className="w-4 h-4 text-coco-accent" />
-              Admin Security Password (Database Verified)
+              <Shield className="w-4 h-4 text-coco-accent" />
+              Staff & Admin Security Passwords (Database Verified)
             </h2>
 
-            <div>
-              <label className="text-xs font-bold text-coco-light block mb-1">Admin Security Password</label>
-              <input
-                type="text"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                className="w-full max-w-md px-3.5 py-2.5 rounded-xl border border-cream-deep focus:outline-none focus:ring-1 focus:ring-coco-accent font-mono font-bold text-sm bg-white"
-                placeholder="Enter new Admin Password"
-              />
-              <p className="text-[11px] text-coco-light/70 mt-1">This password is authenticated on the server against your database when logging in.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Cashier Password Config */}
+              <div className="bg-[#fcf9f5] border border-cream-deep/50 rounded-2xl p-4 flex flex-col justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-coco-dark font-extrabold text-xs mb-1">
+                    <UserCheck className="w-4 h-4 text-amber-700" />
+                    <span>Cashier Access PIN / Password</span>
+                  </div>
+                  <p className="text-[11px] text-coco-light leading-relaxed">
+                    Required for cashiers to unlock Cashier POS Mode and Kitchen TV. Customers cannot access staff screens without this password.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-coco-light block mb-1">Current Cashier Password</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-coco-light" />
+                    <input
+                      type="text"
+                      value={cashierPassword}
+                      onChange={(e) => setCashierPassword(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-cream-deep focus:outline-none focus:ring-1 focus:ring-coco-accent font-mono font-bold text-sm bg-white text-coco-dark"
+                      placeholder="e.g. 1234"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Admin Master Password Config */}
+              <div className="bg-[#fcf9f5] border border-cream-deep/50 rounded-2xl p-4 flex flex-col justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-coco-dark font-extrabold text-xs mb-1">
+                    <Lock className="w-4 h-4 text-coco-accent" />
+                    <span>Admin Master Password</span>
+                  </div>
+                  <p className="text-[11px] text-coco-light leading-relaxed">
+                    Master password to unlock Admin Dashboard, Settings, Sales Reports, Menu Management, and Customer CRM.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-coco-light block mb-1">Current Admin Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-coco-light" />
+                    <input
+                      type="text"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-cream-deep focus:outline-none focus:ring-1 focus:ring-coco-accent font-mono font-bold text-sm bg-white text-coco-dark"
+                      placeholder="e.g. Secure@098"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

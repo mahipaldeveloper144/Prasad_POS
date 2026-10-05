@@ -45,7 +45,7 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { href: "/", label: "POS Cashier", icon: ShoppingBag, role: ["Admin", "Cashier"] },
+    { href: "/", label: "POS", icon: ShoppingBag, role: ["Admin", "Cashier", "Customer"] },
     { href: "/kitchen", label: "Kitchen TV", icon: Tv, role: ["Admin", "Cashier"] },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, role: ["Admin"] },
     { href: "/menu", label: "Menu", icon: MenuIcon, role: ["Admin"] },
@@ -54,8 +54,7 @@ export default function Navbar() {
     { href: "/settings", label: "Settings", icon: Settings, role: ["Admin"] },
   ];
 
-  // If no user is logged in, restrict to Cashier links as default role is Cashier
-  const userRole = currentUser?.role || "Cashier";
+  const userRole = currentUser?.role || "Customer";
 
   const visibleLinks = navLinks.filter((link) => link.role.includes(userRole));
 

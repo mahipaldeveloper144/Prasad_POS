@@ -28,8 +28,15 @@ import {
   Clock,
   UserCheck,
   Banknote,
+  Lock,
+  LogIn,
+  LogOut,
+  ShieldCheck,
+  Smartphone,
+  ExternalLink,
 } from "lucide-react";
 import QRCode from "qrcode";
+import Link from "next/link";
 
 export default function CashierPOS() {
   // Zustand Store
@@ -43,6 +50,8 @@ export default function CashierPOS() {
     paymentMethod,
     menuItems,
     settings,
+    currentUser,
+    logout,
     addParcelItem,
     addAtCartItem,
     updateParcelQty,
@@ -59,11 +68,14 @@ export default function CashierPOS() {
     setSettings,
   } = useCartStore();
 
+  const isStaff = currentUser?.role === "Admin" || currentUser?.role === "Cashier";
+
   // Local component states
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [showQrModal, setShowQrModal] = useState(false);
   const [upiQrUrl, setUpiQrUrl] = useState("");
+  const [rawUpiUrl, setRawUpiUrl] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
 const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
   const [recentOrders, setRecentOrders] = useState([]);
@@ -161,14 +173,54 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
   useEffect(() => {
     if (!showQrModal) return;
     const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
-    const upiUrl = `upi://pay?pa=${settings.upiId || "prasadcoldcoco@okaxis"}&pn=${encodeURIComponent(
+    const upiUrl = `upi://pay?pa=${settings.upiId || "paytm.s26ye94@pty"}&pn=${encodeURIComponent(
       settings.businessName || "Prasad Cold Coco"
-    )}&am=${finalTotal}&tn=${currentOrderNum}&cu=INR`;
+    )}&am=${finalTotal}&tn=${encodeURIComponent("Prasad Cold Coco")}&cu=INR`;
+
+    setRawUpiUrl(upiUrl);
 
     QRCode.toDataURL(upiUrl, { margin: 1, width: 220 })
       .then((url) => setUpiQrUrl(url))
       .catch((err) => console.error("QR Generation error", err));
   }, [showQrModal, finalTotal, settings, orderNumber]);
+
+  // Deep link launcher for specific UPI apps (Paytm, PhonePe, GPay, Universal)
+  const triggerUpiPayment = (app = "generic") => {
+    const pa = settings.upiId || "paytm.s26ye94@pty";
+    const pn = encodeURIComponent(settings.businessName || "Prasad Cold Coco");
+    const tn = encodeURIComponent("Prasad Cold Coco");
+    const am = finalTotal;
+    const baseParams = `pa=${pa}&pn=${pn}&am=${am}&cu=INR&tn=${tn}`;
+
+    let targetUrl = `upi://pay?${baseParams}`;
+
+    if (typeof window !== "undefined") {
+      const isAndroid = /android/i.test(navigator.userAgent || "");
+      const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent || "");
+
+      if (app === "paytm") {
+        if (isAndroid) {
+          targetUrl = `intent://pay?${baseParams}#Intent;scheme=upi;package=net.one97.paytm;end`;
+        } else {
+          targetUrl = `paytmmp://pay?${baseParams}`;
+        }
+      } else if (app === "phonepe") {
+        if (isAndroid) {
+          targetUrl = `intent://pay?${baseParams}#Intent;scheme=upi;package=com.phonepe.app;end`;
+        } else {
+          targetUrl = `phonepe://pay?${baseParams}`;
+        }
+      } else if (app === "gpay") {
+        if (isAndroid) {
+          targetUrl = `intent://pay?${baseParams}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+        } else {
+          targetUrl = `tez://upi/pay?${baseParams}`;
+        }
+      }
+
+      window.location.href = targetUrl;
+    }
+  };
 
   // Plays a success chime
   const playSuccessSound = () => {
@@ -331,7 +383,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
         {/* LEFT COLUMN: Menu Selection (Col span 7 or 8) */}
         <section className="lg:col-span-8 flex flex-col gap-6">
           {/* Header & Stats Banner */}
-          <div className="bg-gradient-to-r from-coco-dark to-coco-medium text-cream-light rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-lg relative overflow-hidden">
+          <div className="bg-gradient-to-r from-coco-dark to-coco-medium text-cream-light rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-lg relative overflow-hidden gap-4">
             {/* Background decoration */}
             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
             <div className="flex items-center gap-4 relative z-10">
@@ -339,16 +391,57 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                 <Sparkles className="w-6 h-6 text-cream-deep" />
               </div>
               <div>
-                <h2 className="font-extrabold text-xl sm:text-2xl tracking-tight">Quick Checkout</h2>
-                <p className="text-sm text-cream-base/80 mt-0.5">Create coco orders seamlessly in seconds</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-extrabold text-xl sm:text-2xl tracking-tight">
+                    {isStaff ? "Cashier POS Terminal" : "Customer Self-Ordering"}
+                  </h2>
+                  <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                    isStaff
+                      ? currentUser?.role === "Admin"
+                        ? "bg-purple-500/20 text-purple-200 border border-purple-400/40"
+                        : "bg-emerald-500/20 text-emerald-200 border border-emerald-400/40"
+                      : "bg-amber-500/20 text-amber-200 border border-amber-400/40"
+                  }`}>
+                    {isStaff ? `${currentUser.username} (${currentUser.role})` : "Customer Mode"}
+                  </span>
+                </div>
+                <p className="text-sm text-cream-base/80 mt-0.5">
+                  {isStaff
+                    ? "Fast counter checkout & kitchen dispatch"
+                    : "Mix, Sip, Smile! Add items, select size, and place your order"}
+                </p>
               </div>
             </div>
-            {settings.phone && (
-              <div className="mt-4 sm:mt-0 text-left sm:text-right relative z-10 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/5">
-                <p className="text-xs text-cream-base/70 font-medium uppercase tracking-wider">Cart Helpline</p>
-                <p className="text-base sm:text-lg font-bold text-white">{settings.phone}</p>
-              </div>
-            )}
+
+            {/* Right side controls / helpline */}
+            <div className="flex items-center gap-2.5 relative z-10 self-stretch sm:self-auto justify-between sm:justify-end">
+              {isStaff ? (
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="bg-white/15 hover:bg-white/25 text-white border border-white/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  title="Lock terminal and switch to Customer Mode"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Lock to Customer Mode</span>
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  className="bg-white/15 hover:bg-white/25 text-white border border-white/20 px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  <LogIn className="w-3.5 h-3.5 text-cream-deep" />
+                  <span>Staff Login</span>
+                </Link>
+              )}
+
+              {settings.phone && (
+                <div className="hidden lg:block text-right bg-white/10 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/5">
+                  <p className="text-[10px] text-cream-base/70 font-semibold uppercase tracking-wider">Cart Helpline</p>
+                  <p className="text-sm font-bold text-white">{settings.phone}</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Search and Categories */}
@@ -553,8 +646,8 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
             )}
           </div>
 
-          {/* Quick Repeat Section */}
-          {recentOrders.length > 0 && (
+          {/* Quick Repeat Section (Staff Only) */}
+          {isStaff && recentOrders.length > 0 && (
             <div className="bg-gradient-to-br from-cream-base to-white border border-cream-deep/40 rounded-3xl p-5">
               <h3 className="font-extrabold text-sm mb-4 text-coco-medium flex items-center gap-2">
                 <RotateCcw className="w-4 h-4 text-coco-accent" />
@@ -746,7 +839,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                     placeholder=" "
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    onFocus={() => setShowCustomerDropdown(recentCustomers.length > 0)}
+                    onFocus={() => setShowCustomerDropdown(isStaff && recentCustomers.length > 0)}
                     onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
                     className="block px-4 pb-2.5 pt-5 w-full text-sm text-coco-dark bg-white rounded-2xl border border-cream-deep/60 appearance-none focus:outline-none focus:ring-0 focus:border-coco-accent peer shadow-sm transition-colors"
                   />
@@ -754,8 +847,8 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                     Mobile Number <span className="text-red-500">*</span>
                   </label>
                   
-                  {/* Phone Lookup Dropdown */}
-                  {showCustomerDropdown && (
+                  {/* Phone Lookup Dropdown (Staff Only) */}
+                  {isStaff && showCustomerDropdown && (
                     <div className="absolute left-0 right-0 top-full mt-2 bg-white/95 backdrop-blur-xl border border-cream-deep/60 rounded-2xl shadow-xl z-50 max-h-48 overflow-y-auto overflow-x-hidden">
                       {recentCustomers
                         .filter((c) => c.phone.toLowerCase().includes(customerPhone.toLowerCase()) || c.name.toLowerCase().includes(customerPhone.toLowerCase()))
@@ -771,7 +864,7 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                             className="w-full text-left px-4 py-3 hover:bg-cream-base/80 border-b border-cream-base/40 transition-colors flex justify-between items-center group"
                           >
                             <span className="font-bold text-sm text-coco-dark group-hover:text-coco-accent transition-colors flex items-center gap-1.5">
-                              📱 {cust.phone}
+                              📱 {cust.phone.slice(0, 5) + 'XXXX' + cust.phone.slice(-1)}
                             </span>
                             <span className="text-[11px] text-coco-medium font-bold bg-cream-base px-2.5 py-1 rounded-md">
                               {cust.name}
@@ -798,8 +891,8 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                 </div>
                 
                 {/* Notes & Discount Collapse */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="relative col-span-2">
+                <div className={`grid gap-3 ${isStaff ? "grid-cols-3" : "grid-cols-1"}`}>
+                  <div className={`relative ${isStaff ? "col-span-2" : "col-span-1"}`}>
                     <input
                       type="text"
                       id="orderNotes"
@@ -812,19 +905,21 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                       Notes (Optional)
                     </label>
                   </div>
-                  <div className="relative col-span-1">
-                    <input
-                      type="number"
-                      id="orderDiscount"
-                      placeholder=" "
-                      value={discount || ""}
-                      onChange={(e) => setDiscount(e.target.value)}
-                      className="block px-3 pb-2 pt-4 w-full text-xs font-black text-red-500 bg-white/50 rounded-xl border border-cream-deep/40 appearance-none focus:outline-none focus:ring-0 focus:border-red-400 peer transition-colors text-right"
-                    />
-                    <label htmlFor="orderDiscount" className="absolute text-[10px] font-bold text-coco-light duration-300 transform -translate-y-2.5 scale-75 top-3 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:text-[11px] peer-focus:scale-75 peer-focus:-translate-y-2.5 peer-focus:font-bold peer-focus:text-red-500 cursor-text">
-                      Discount ₹
-                    </label>
-                  </div>
+                  {isStaff && (
+                    <div className="relative col-span-1">
+                      <input
+                        type="number"
+                        id="orderDiscount"
+                        placeholder=" "
+                        value={discount || ""}
+                        onChange={(e) => setDiscount(e.target.value)}
+                        className="block px-3 pb-2 pt-4 w-full text-xs font-black text-red-500 bg-white/50 rounded-xl border border-cream-deep/40 appearance-none focus:outline-none focus:ring-0 focus:border-red-400 peer transition-colors text-right"
+                      />
+                      <label htmlFor="orderDiscount" className="absolute text-[10px] font-bold text-coco-light duration-300 transform -translate-y-2.5 scale-75 top-3 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:text-[11px] peer-focus:scale-75 peer-focus:-translate-y-2.5 peer-focus:font-bold peer-focus:text-red-500 cursor-text">
+                        Discount ₹
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -877,112 +972,130 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                   </button>
                 </div>
 
-                {/* Cash Change Calculator (when Cash Pay is selected) */}
+                {/* Cash Payment Section */}
                 {paymentMethod === "Cash" && (
-                  <div className="p-2.5 bg-cream-base/20 rounded-xl border border-cream-deep/30 flex flex-col gap-2 transition-all">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold text-coco-dark flex items-center gap-1.5">
-                        <Banknote className="w-3.5 h-3.5 text-emerald-600" />
-                        Cash Tendered / Received
-                      </span>
-                      {cashReceived !== "" && (
-                        <button
-                          type="button"
-                          onClick={() => setCashReceived("")}
-                          className="text-[10px] text-coco-light hover:text-red-500 font-bold transition-colors"
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Input Field */}
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-coco-medium">
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        placeholder={finalTotal > 0 ? `Enter note (e.g. 500)` : "Cash amount received"}
-                        value={cashReceived}
-                        onChange={(e) => setCashReceived(e.target.value)}
-                        className="w-full pl-7 pr-3 py-1.5 text-xs font-black text-coco-dark bg-white rounded-lg border border-cream-deep/50 focus:outline-none focus:border-coco-accent transition-colors"
-                      />
-                    </div>
-
-                    {/* Quick Note Suggestions */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {finalTotal > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setCashReceived(String(finalTotal))}
-                          className={`px-2 py-1 text-[10px] font-black rounded-lg border transition-all ${
-                            Number(cashReceived) === finalTotal
-                              ? "bg-coco-accent text-white border-coco-accent shadow-sm"
-                              : "bg-white text-coco-medium border-cream-deep/50 hover:bg-cream-base/60"
-                          }`}
-                        >
-                          Exact ₹{finalTotal}
-                        </button>
-                      )}
-                      {[100, 200, 500].map((note) => (
-                        <button
-                          key={note}
-                          type="button"
-                          onClick={() => setCashReceived(String(note))}
-                          className={`px-2 py-1 text-[10px] font-black rounded-lg border transition-all ${
-                            Number(cashReceived) === note
-                              ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                              : "bg-white text-coco-medium border-cream-deep/50 hover:bg-cream-base/60"
-                          }`}
-                        >
-                          ₹{note}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Change to Return Display Banner */}
-                    {cashReceived !== "" && Number(cashReceived) > 0 && (
-                      <div
-                        className={`p-2.5 rounded-xl flex items-center justify-between border transition-all ${
-                          changeToReturn >= 0
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-950"
-                            : "bg-amber-50 border-amber-300 text-amber-950"
-                        }`}
-                      >
-                        <div>
-                          <div className="text-[10px] font-black uppercase tracking-wider">
-                            {changeToReturn >= 0 ? "Change to Return" : "Due / Short Amount"}
-                          </div>
-                          <div className="text-[10px] font-semibold opacity-80">
-                            {changeToReturn >= 0
-                              ? `Customer gave ₹${cashReceivedNum} - Bill ₹${finalTotal}`
-                              : `Need ₹${Math.abs(changeToReturn)} more from customer`}
-                          </div>
-                        </div>
-                        <div
-                          className={`text-lg font-black tabular-nums ${
-                            changeToReturn >= 0 ? "text-emerald-700" : "text-amber-700"
-                          }`}
-                        >
-                          ₹{Math.abs(changeToReturn)}
-                        </div>
+                  isStaff ? (
+                    /* Staff Cash Change Calculator */
+                    <div className="p-2.5 bg-cream-base/20 rounded-xl border border-cream-deep/30 flex flex-col gap-2 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-coco-dark flex items-center gap-1.5">
+                          <Banknote className="w-3.5 h-3.5 text-emerald-600" />
+                          Cash Tendered / Received
+                        </span>
+                        {cashReceived !== "" && (
+                          <button
+                            type="button"
+                            onClick={() => setCashReceived("")}
+                            className="text-[10px] text-coco-light hover:text-red-500 font-bold transition-colors"
+                          >
+                            Clear
+                          </button>
+                        )}
                       </div>
-                    )}
-                  </div>
+
+                      {/* Input Field */}
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-coco-medium">
+                          ₹
+                        </span>
+                        <input
+                          type="number"
+                          placeholder={finalTotal > 0 ? `Enter note (e.g. 500)` : "Cash amount received"}
+                          value={cashReceived}
+                          onChange={(e) => setCashReceived(e.target.value)}
+                          className="w-full pl-7 pr-3 py-1.5 text-xs font-black text-coco-dark bg-white rounded-lg border border-cream-deep/50 focus:outline-none focus:border-coco-accent transition-colors"
+                        />
+                      </div>
+
+                      {/* Quick Note Suggestions */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {finalTotal > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setCashReceived(String(finalTotal))}
+                            className={`px-2 py-1 text-[10px] font-black rounded-lg border transition-all ${
+                              Number(cashReceived) === finalTotal
+                                ? "bg-coco-accent text-white border-coco-accent shadow-sm"
+                                : "bg-white text-coco-medium border-cream-deep/50 hover:bg-cream-base/60"
+                            }`}
+                          >
+                            Exact ₹{finalTotal}
+                          </button>
+                        )}
+                        {[100, 200, 500].map((note) => (
+                          <button
+                            key={note}
+                            type="button"
+                            onClick={() => setCashReceived(String(note))}
+                            className={`px-2 py-1 text-[10px] font-black rounded-lg border transition-all ${
+                              Number(cashReceived) === note
+                                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                                : "bg-white text-coco-medium border-cream-deep/50 hover:bg-cream-base/60"
+                            }`}
+                          >
+                            ₹{note}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Change to Return Display Banner */}
+                      {cashReceived !== "" && Number(cashReceived) > 0 && (
+                        <div
+                          className={`p-2.5 rounded-xl flex items-center justify-between border transition-all ${
+                            changeToReturn >= 0
+                              ? "bg-emerald-50 border-emerald-300 text-emerald-950"
+                              : "bg-amber-50 border-amber-300 text-amber-950"
+                          }`}
+                        >
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-wider">
+                              {changeToReturn >= 0 ? "Change to Return" : "Due / Short Amount"}
+                            </div>
+                            <div className="text-[10px] font-semibold opacity-80">
+                              {changeToReturn >= 0
+                                ? `Customer gave ₹${cashReceivedNum} - Bill ₹${finalTotal}`
+                                : `Need ₹${Math.abs(changeToReturn)} more from customer`}
+                            </div>
+                          </div>
+                          <div
+                            className={`text-lg font-black tabular-nums ${
+                              changeToReturn >= 0 ? "text-emerald-700" : "text-amber-700"
+                            }`}
+                          >
+                            ₹{Math.abs(changeToReturn)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Customer Cash Notice */
+                    <div className="p-3 bg-amber-50/90 rounded-2xl border border-amber-200/80 text-amber-950 flex items-center gap-3">
+                      <div className="p-2 bg-amber-100 rounded-xl text-amber-800 shrink-0">
+                        <Banknote className="w-5 h-5" />
+                      </div>
+                      <div className="text-xs">
+                        <p className="font-bold">Pay Cash at Counter</p>
+                        <p className="text-[11px] text-amber-900/80 mt-0.5">
+                          Please hand <span className="font-extrabold text-coco-accent">₹{finalTotal}</span> in cash to the cashier when collecting your drink.
+                        </p>
+                      </div>
+                    </div>
+                  )
                 )}
 
-                {/* Animated Print Toggle */}
-                <div className="flex items-center justify-between px-3 py-2 cursor-pointer rounded-xl hover:bg-cream-base/50 transition-colors group" onClick={() => setShouldPrint(!shouldPrint)}>
-                  <label className="text-xs font-extrabold text-coco-dark cursor-pointer flex items-center gap-2">
-                    <Printer className={`w-3.5 h-3.5 transition-colors ${shouldPrint ? 'text-coco-accent' : 'text-coco-light'}`} />
-                    Print Receipt
-                  </label>
-                  
-                  <div className={`relative w-9 h-5 flex items-center rounded-full p-1 transition-colors duration-300 ${shouldPrint ? 'bg-coco-accent' : 'bg-cream-deep/60'}`}>
-                    <div className={`bg-white w-3.5 h-3.5 rounded-full shadow-md transform transition-transform duration-300 ${shouldPrint ? 'translate-x-3.5' : 'translate-x-0'}`}></div>
+                {/* Animated Print Toggle (Staff Only) */}
+                {isStaff && (
+                  <div className="flex items-center justify-between px-3 py-2 cursor-pointer rounded-xl hover:bg-cream-base/50 transition-colors group" onClick={() => setShouldPrint(!shouldPrint)}>
+                    <label className="text-xs font-extrabold text-coco-dark cursor-pointer flex items-center gap-2">
+                      <Printer className={`w-3.5 h-3.5 transition-colors ${shouldPrint ? 'text-coco-accent' : 'text-coco-light'}`} />
+                      Print Receipt
+                    </label>
+                    
+                    <div className={`relative w-9 h-5 flex items-center rounded-full p-1 transition-colors duration-300 ${shouldPrint ? 'bg-coco-accent' : 'bg-cream-deep/60'}`}>
+                      <div className={`bg-white w-3.5 h-3.5 rounded-full shadow-md transform transition-transform duration-300 ${shouldPrint ? 'translate-x-3.5' : 'translate-x-0'}`}></div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Place Order CTA */}
@@ -1000,6 +1113,19 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                     if (cart.length === 0) {
                       alert("Cart is empty!");
                       return;
+                    }
+
+                    const currentNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
+                    if (!orderNumber) setOrderNumber(currentNum);
+
+                    const upiUrl = `upi://pay?pa=${settings.upiId || "paytm.s26ye94@pty"}&pn=${encodeURIComponent(
+                      settings.businessName || "Prasad Cold Coco"
+                    )}&am=${finalTotal}&tn=${encodeURIComponent("Prasad Cold Coco")}&cu=INR`;
+                    setRawUpiUrl(upiUrl);
+
+                    // If on customer screen, attempt direct launch to UPI apps
+                    if (!isStaff) {
+                      triggerUpiPayment("generic");
                     }
                     setShowQrModal(true);
                   } else {
@@ -1024,10 +1150,17 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                     Processing...
                   </span>
                 ) : paymentMethod === "UPI" ? (
-                  <>
-                    <QrCode className="w-4 h-4" />
-                    Generate QR (₹{finalTotal})
-                  </>
+                  !isStaff ? (
+                    <span className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-amber-300" />
+                      <span>Pay with UPI App (₹{finalTotal})</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <QrCode className="w-4 h-4" />
+                      <span>Generate QR (₹{finalTotal})</span>
+                    </span>
+                  )
                 ) : (
                   <>
                     {shouldPrint ? <Printer className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
@@ -1073,56 +1206,121 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
         </div>
       )}
 
-      {/* UPI QR PAYMENT MODAL */}
+      {/* UPI QR & APP PAYMENT MODAL */}
       {showQrModal && (
         <div className="fixed inset-0 bg-coco-dark/60 backdrop-blur-md z-50 flex items-center justify-center p-4 no-print animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-5 relative animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[2rem] p-5 sm:p-7 max-w-sm w-full text-center shadow-2xl flex flex-col items-center gap-4 relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             {/* Close button */}
-            <button onClick={() => setShowQrModal(false)} className="absolute top-4 right-4 text-coco-light hover:text-coco-dark bg-cream-base/50 p-2 rounded-full transition-colors">
+            <button onClick={() => setShowQrModal(false)} className="absolute top-4 right-4 text-coco-light hover:text-coco-dark bg-cream-base/50 p-2 rounded-full transition-colors cursor-pointer">
                <Plus className="w-4 h-4 rotate-45" />
             </button>
             
-            <div className="mt-2">
-              <div className="bg-blue-50 text-blue-600 w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                <QrCode className="w-6 h-6" />
+            <div className="mt-1">
+              <div className="bg-blue-50 text-blue-600 w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-2">
+                {!isStaff ? <Smartphone className="w-5 h-5 text-blue-600" /> : <QrCode className="w-5 h-5" />}
               </div>
-              <h3 className="font-black text-xl text-coco-dark tracking-tight">Scan to Pay</h3>
-              <p className="text-xs text-coco-light/80 mt-1">Accepts GPay, PhonePe, Paytm</p>
+              <h3 className="font-black text-xl text-coco-dark tracking-tight">
+                {!isStaff ? "UPI Payment" : "Scan to Pay"}
+              </h3>
+              <p className="text-xs text-coco-light/80 mt-0.5">
+                {!isStaff ? "Pay instantly with your installed UPI app" : "Accepts GPay, PhonePe, Paytm, BHIM"}
+              </p>
             </div>
 
+            {/* Customer Direct UPI App Launch Actions */}
+            {!isStaff && (
+              <div className="w-full flex flex-col gap-2.5">
+                <div className="text-left">
+                  <p className="text-[11px] font-extrabold text-coco-dark">
+                    Tap your UPI App to pay ₹{finalTotal}:
+                  </p>
+                </div>
+
+                {/* 3 Main 1-Tap UPI App Buttons */}
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Paytm Button */}
+                  <button
+                    type="button"
+                    onClick={() => triggerUpiPayment("paytm")}
+                    className="flex flex-col items-center justify-center p-2.5 rounded-2xl border-2 border-[#00baf2]/50 bg-[#00baf2]/10 hover:bg-[#00baf2]/20 transition-all active:scale-95 cursor-pointer shadow-xs group"
+                  >
+                    <span className="text-sm font-black text-[#002970] tracking-tight">Paytm</span>
+                    <span className="text-[10px] font-bold text-[#00baf2] group-hover:underline mt-0.5">Pay Now</span>
+                  </button>
+
+                  {/* PhonePe Button */}
+                  <button
+                    type="button"
+                    onClick={() => triggerUpiPayment("phonepe")}
+                    className="flex flex-col items-center justify-center p-2.5 rounded-2xl border-2 border-[#5f259f]/50 bg-[#5f259f]/10 hover:bg-[#5f259f]/20 transition-all active:scale-95 cursor-pointer shadow-xs group"
+                  >
+                    <span className="text-sm font-black text-[#5f259f] tracking-tight">PhonePe</span>
+                    <span className="text-[10px] font-bold text-[#5f259f] group-hover:underline mt-0.5">Pay Now</span>
+                  </button>
+
+                  {/* Google Pay Button */}
+                  <button
+                    type="button"
+                    onClick={() => triggerUpiPayment("gpay")}
+                    className="flex flex-col items-center justify-center p-2.5 rounded-2xl border-2 border-[#1a73e8]/50 bg-[#1a73e8]/10 hover:bg-[#1a73e8]/20 transition-all active:scale-95 cursor-pointer shadow-xs group"
+                  >
+                    <span className="text-sm font-black text-[#1a73e8] tracking-tight">GPay</span>
+                    <span className="text-[10px] font-bold text-[#1a73e8] group-hover:underline mt-0.5">Pay Now</span>
+                  </button>
+                </div>
+
+                {/* Generic Other UPI Button */}
+                <button
+                  type="button"
+                  onClick={() => triggerUpiPayment("generic")}
+                  className="w-full bg-[#2d1910] hover:bg-[#3d2317] text-white py-2.5 px-3 rounded-xl font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-amber-300" />
+                  <span>Other UPI Apps (BHIM / CRED / Bank)</span>
+                  <ExternalLink className="w-3 h-3 text-white/70" />
+                </button>
+
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-cream-deep/40"></div>
+                  <span className="flex-shrink mx-2 text-[10px] uppercase font-black text-coco-light/60">Or Scan QR Code</span>
+                  <div className="flex-grow border-t border-cream-deep/40"></div>
+                </div>
+              </div>
+            )}
+
             {/* QR Canvas Container */}
-            <div className="bg-white p-4 rounded-3xl shadow-inner border-2 border-cream-base relative">
-              {/* Scanline simple animation using standard tailwind classes */}
-              <div className="absolute inset-x-4 top-4 h-0.5 bg-blue-500/50 blur-[1px] animate-pulse"></div>
+            <div className="bg-white p-3 rounded-2xl shadow-inner border-2 border-cream-base relative">
+              {/* Scanline simple animation */}
+              <div className="absolute inset-x-3 top-3 h-0.5 bg-blue-500/50 blur-[1px] animate-pulse"></div>
               
               {upiQrUrl ? (
-                <img src={upiQrUrl} alt="UPI QR Code" className="w-[200px] h-[200px] object-contain mx-auto mix-blend-multiply" />
+                <img src={upiQrUrl} alt="UPI QR Code" className="w-[170px] h-[170px] object-contain mx-auto mix-blend-multiply" />
               ) : (
-                <div className="w-[200px] h-[200px] bg-cream-base/50 rounded-2xl flex items-center justify-center text-xs font-bold text-coco-light animate-pulse">
+                <div className="w-[170px] h-[170px] bg-cream-base/50 rounded-xl flex items-center justify-center text-xs font-bold text-coco-light animate-pulse">
                   Generating QR...
                 </div>
               )}
             </div>
 
-            <div className="w-full bg-cream-base/40 rounded-2xl p-4 border border-cream-deep/30">
-              <p className="text-xs text-coco-light font-bold uppercase tracking-wider mb-1">Amount to Pay</p>
-              <p className="text-3xl font-black text-coco-dark">₹{finalTotal}</p>
-              <p className="text-[10px] text-coco-accent mt-2 font-extrabold tracking-widest bg-white py-1 px-3 rounded-lg inline-block border border-cream-deep/50 shadow-sm">
-                ID: {currentOrderNum}
+            <div className="w-full bg-cream-base/40 rounded-2xl p-3 border border-cream-deep/30">
+              <p className="text-[10px] text-coco-light font-bold uppercase tracking-wider mb-0.5">Amount to Pay</p>
+              <p className="text-2xl sm:text-3xl font-black text-coco-dark">₹{finalTotal}</p>
+              <p className="text-[10px] text-coco-accent mt-1.5 font-extrabold tracking-wider bg-white py-0.5 px-2.5 rounded-lg inline-block border border-cream-deep/50 shadow-xs">
+                Order Ref: {orderNumber || `PC-${Date.now().toString().slice(-4)}`}
               </p>
             </div>
 
             {/* Modal Actions */}
-            <div className="flex flex-col gap-2.5 w-full mt-2">
+            <div className="flex flex-col gap-2 w-full mt-1">
               <button
                 onClick={() => handlePlaceOrder(true)}
-                className="w-full bg-gradient-to-r from-coco-dark to-coco-accent text-white py-3.5 rounded-2xl font-black text-sm shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
+                className="w-full bg-gradient-to-r from-coco-dark to-coco-accent text-white py-3.5 rounded-2xl font-black text-sm shadow-md hover:shadow-lg active:scale-[0.98] transition-all cursor-pointer"
               >
-                {shouldPrint ? "Confirm Paid & Print Receipt" : "Confirm Paid"}
+                {!isStaff ? "I Have Completed Payment" : shouldPrint ? "Confirm Paid & Print Receipt" : "Confirm Paid"}
               </button>
               <button
                 onClick={() => setShowQrModal(false)}
-                className="w-full bg-white text-coco-medium py-3 rounded-2xl font-bold text-xs border-2 border-cream-deep/50 hover:bg-cream-base/50 transition-colors"
+                className="w-full bg-white text-coco-medium py-2.5 rounded-2xl font-bold text-xs border border-cream-deep/60 hover:bg-cream-base/50 transition-colors cursor-pointer"
               >
                 Cancel / Change Method
               </button>

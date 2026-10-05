@@ -145,6 +145,21 @@ export async function verifyAdminPasswordAction(inputPassword) {
   }
 }
 
+export async function verifyCashierPasswordAction(inputPassword) {
+  try {
+    const settings = await getSettings();
+    const dbPassword = settings?.cashierPassword || "1234";
+    if (inputPassword === dbPassword) {
+      return { success: true };
+    } else {
+      return { success: false, error: "Invalid Cashier Password!" };
+    }
+  } catch (error) {
+    console.error("verifyCashierPasswordAction error:", error);
+    return { success: false, error: "Database authentication error" };
+  }
+}
+
 export async function resetToDefaultAction() {
   try {
     const fs = require("fs");

@@ -98,6 +98,7 @@ const SettingsSchema = new mongoose.Schema(
     enableSound: { type: Boolean, default: true },
     printerWidth: { type: String, default: "58mm" },
     adminPassword: { type: String, default: "Secure@098" },
+    cashierPassword: { type: String, default: "1234" },
   },
   { timestamps: true }
 );

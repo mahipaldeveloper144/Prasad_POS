@@ -275,6 +275,80 @@
       "notes": "",
       "id": "o-1789371360086",
       "createdAt": "2026-09-14T07:36:00.086Z"
+    },
+    {
+      "orderNumber": "PC-1274",
+      "customerName": "Dhanani Mahipal",
+      "customerPhone": "09099792454",
+      "items": [
+        {
+          "name": "Plain Cold Coco",
+          "size": "250 ml",
+          "price": 70,
+          "costPrice": 32,
+          "parcelQty": 1,
+          "atCartQty": 1,
+          "totalQty": 2,
+          "quantity": 2,
+          "subtotal": 140,
+          "orderMode": "MIXED"
+        },
+        {
+          "name": "KitKat Coco",
+          "size": "250 ml",
+          "price": 100,
+          "costPrice": 52,
+          "parcelQty": 0,
+          "atCartQty": 1,
+          "totalQty": 1,
+          "quantity": 1,
+          "subtotal": 100,
+          "orderMode": "AT_CART"
+        }
+      ],
+      "subtotal": 240,
+      "discount": 0,
+      "total": 240,
+      "paymentMethod": "Cash",
+      "paymentStatus": "Paid",
+      "cashReceived": 240,
+      "changeAmount": 0,
+      "status": "Completed",
+      "type": "Parcel & At Cart",
+      "notes": "",
+      "id": "o-1791223341316",
+      "createdAt": "2026-10-05T18:02:21.316Z"
+    },
+    {
+      "orderNumber": "PC-5026",
+      "customerName": "Dhanani Mahipal",
+      "customerPhone": "09099792454",
+      "items": [
+        {
+          "name": "Water Bottle",
+          "size": "250 ml",
+          "price": 10,
+          "costPrice": 4,
+          "parcelQty": 1,
+          "atCartQty": 0,
+          "totalQty": 1,
+          "quantity": 1,
+          "subtotal": 10,
+          "orderMode": "PARCEL"
+        }
+      ],
+      "subtotal": 10,
+      "discount": 0,
+      "total": 10,
+      "paymentMethod": "UPI",
+      "paymentStatus": "Paid",
+      "cashReceived": 10,
+      "changeAmount": 0,
+      "status": "New",
+      "type": "Parcel",
+      "notes": "",
+      "id": "o-1791226055202",
+      "createdAt": "2026-10-05T18:47:35.202Z"
     }
   ],
   "customers": [
@@ -299,6 +373,17 @@
       "favoriteItem": "Oreo Coco",
       "notes": "",
       "lastVisit": "2026-09-14T07:36:00.086Z"
+    },
+    {
+      "id": "c-1791223341316",
+      "name": "Dhanani Mahipal",
+      "phone": "09099792454",
+      "visits": 2,
+      "orders": 2,
+      "totalSpend": 250,
+      "favoriteItem": "Water Bottle",
+      "notes": "",
+      "lastVisit": "2026-10-05T18:47:35.203Z"
     }
   ],
   "settings": {
@@ -313,6 +398,7 @@
     "googleReviewUrl": "https://g.page/r/CapLAbnAmxF7EAI/review",
     "enableSound": true,
     "printerWidth": "58mm",
-    "adminPassword": "Secure@098"
+    "adminPassword": "Secure@098",
+    "cashierPassword": "Prasad@098"
   }
 }
