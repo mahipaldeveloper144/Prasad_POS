@@ -337,6 +337,15 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
     });
   };
 
+  // Fast print / reprint order on 58mm mini thermal printer
+  const handlePrintOrder = (order) => {
+    if (!order) return;
+    setLastPlacedOrder(order);
+    setTimeout(() => {
+      window.print();
+    }, 150);
+  };
+
   // Map of item name and size to dual order mode quantities in cart (Parcel & At Cart)
   const cartItemQuantities = useMemo(() => {
     const map = {};
@@ -649,22 +658,22 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
           {/* Quick Repeat Section (Staff Only) */}
           {isStaff && recentOrders.length > 0 && (
             <div className="bg-gradient-to-br from-cream-base to-white border border-cream-deep/40 rounded-3xl p-5">
-              <h3 className="font-extrabold text-sm mb-4 text-coco-medium flex items-center gap-2">
-                <RotateCcw className="w-4 h-4 text-coco-accent" />
-                One-Click Repeat Orders
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-extrabold text-sm text-coco-medium flex items-center gap-2">
+                  <RotateCcw className="w-4 h-4 text-coco-accent" />
+                  Recent Orders & Fast Print
+                </h3>
+              </div>
               <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
                 {recentOrders.map((ro) => (
-                  <button
+                  <div
                     key={ro.id || ro._id}
-                    onClick={() => handleRepeatOrder(ro)}
-                    className="snap-start flex flex-col text-left p-3.5 bg-white border border-cream-deep/60 rounded-2xl hover:border-coco-accent/60 hover:shadow-md transition-all duration-300 min-w-[180px] flex-shrink-0 relative overflow-hidden group"
+                    className="snap-start flex flex-col justify-between p-3.5 bg-white border border-cream-deep/60 rounded-2xl hover:border-coco-accent/60 hover:shadow-md transition-all duration-300 min-w-[200px] flex-shrink-0 relative overflow-hidden group"
                   >
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-cream-base rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500 ease-out z-0"></div>
                     <div className="relative z-10">
-                      <div className="flex justify-between w-full text-[10px] font-black text-coco-light mb-1">
-                        <span>{ro.orderNumber}</span>
-                        <span className="text-coco-accent">₹{ro.total}</span>
+                      <div className="flex justify-between items-center w-full text-[10px] font-black text-coco-light mb-1">
+                        <span className="font-mono bg-cream-base/60 px-1.5 py-0.5 rounded text-coco-dark font-extrabold">{ro.orderNumber}</span>
+                        <span className="text-coco-accent font-extrabold text-xs">₹{ro.total}</span>
                       </div>
                       <span className="font-extrabold text-sm text-coco-dark block truncate">
                         {ro.customerName}
@@ -673,7 +682,26 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                         {ro.items.map((i) => `${i.name} (${i.size || "250 ml"}) × ${i.quantity}`).join(", ")}
                       </span>
                     </div>
-                  </button>
+
+                    <div className="flex items-center gap-2 mt-3 pt-2 border-t border-cream-deep/30 relative z-10">
+                      <button
+                        type="button"
+                        onClick={() => handleRepeatOrder(ro)}
+                        className="flex-1 bg-cream-base/80 hover:bg-coco-dark hover:text-white text-coco-dark text-[11px] font-bold py-1.5 px-2 rounded-xl transition-colors text-center cursor-pointer"
+                        title="Repeat this order in cart"
+                      >
+                        Repeat
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePrintOrder(ro)}
+                        className="bg-cream-base/80 hover:bg-coco-accent hover:text-white text-coco-medium p-1.5 rounded-xl transition-colors cursor-pointer"
+                        title="Print receipt on 58mm thermal printer"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -1329,37 +1357,90 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
         </div>
       )}
 
-      {/* PRINT RECEIPT COMPONENT (Hidden from view on web, visible during print) */}
+      {/* PRINT RECEIPT COMPONENT (Rendered for 58mm / 80mm thermal printers) */}
       {lastPlacedOrder && (
         <div
+          id="thermal-receipt-area"
           className={`print-receipt-container ${
             settings.printerWidth === "80mm" ? "print-receipt-container-80" : ""
-          } hidden`}
+          }`}
         >
-          <div className="text-center font-bold" style={{ fontSize: "14px", borderBottom: "1px dashed black", paddingBottom: "4px" }}>
-            {settings.businessName || "PRASAD COLD COCO"}
-          </div>
-          <div className="text-center" style={{ fontSize: "10px", margin: "2px 0 6px 0" }}>
-            {settings.tagline && <div>"{settings.tagline}"</div>}
-            {settings.address && <div style={{ fontSize: "9px" }}>{settings.address}</div>}
-            {settings.phone && <div>Tel: {settings.phone}</div>}
-            {settings.gstNumber && <div>GSTIN: {settings.gstNumber}</div>}
+          {/* Header */}
+          <div style={{ textAlign: "center", borderBottom: "1px dashed #000", paddingBottom: "4px", marginBottom: "4px" }}>
+            {/* Store Logo */}
+            <img
+              src="/logo-chocolate-nobg.png"
+              alt="Logo"
+              style={{
+                width: "42px",
+                height: "42px",
+                objectFit: "contain",
+                margin: "0 auto 2px auto",
+                display: "block",
+                filter: "grayscale(100%) contrast(150%)",
+              }}
+            />
+            {settings.receiptHeader && (
+              <div style={{ fontSize: "9px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "2px" }}>
+                {settings.receiptHeader}
+              </div>
+            )}
+            {/* <div style={{ fontSize: "14px", fontWeight: "900", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+              {settings.businessName || "PRASAD COLD COCO"}
+            </div> */}
+            {settings.tagline && (
+              <div style={{ fontSize: "9px", fontWeight: "bold", margin: "1px 0" }}>
+                "{settings.tagline}"
+              </div>
+            )}
+            {settings.address && (
+              <div style={{ fontSize: "8.5px", margin: "1px 0" }}>{settings.address}</div>
+            )}
+            {settings.phone && (
+              <div style={{ fontSize: "9px", fontWeight: "600" }}>Tel: {settings.phone}</div>
+            )}
+            {settings.gstNumber && (
+              <div style={{ fontSize: "8.5px" }}>GSTIN: {settings.gstNumber}</div>
+            )}
           </div>
 
-          <div style={{ borderBottom: "1px dashed black", paddingBottom: "4px", marginBottom: "4px", fontSize: "10px" }}>
-            <div><b>Bill No:</b> {lastPlacedOrder.orderNumber}</div>
-            <div><b>Date:</b> {new Date(lastPlacedOrder.createdAt).toLocaleDateString()} {new Date(lastPlacedOrder.createdAt).toLocaleTimeString()}</div>
-            <div><b>Customer:</b> {lastPlacedOrder.customerName}</div>
-            {lastPlacedOrder.customerPhone && <div><b>Phone:</b> {lastPlacedOrder.customerPhone}</div>}
-            <div><b>Type:</b> {lastPlacedOrder.type} ({lastPlacedOrder.paymentMethod})</div>
+          {/* Token & Order Metadata */}
+          <div style={{ borderBottom: "1px dashed #000", paddingBottom: "4px", marginBottom: "4px", fontSize: "10px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: "bold", margin: "1px 0" }}>
+              <span>TOKEN / BILL:</span>
+              <span style={{ fontSize: "13px", fontWeight: "900" }}>{lastPlacedOrder.orderNumber}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0" }}>
+              <span>Date:</span>
+              <span>{new Date(lastPlacedOrder.createdAt).toLocaleDateString()} {new Date(lastPlacedOrder.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0" }}>
+              <span>Customer:</span>
+              <span style={{ fontWeight: "bold" }}>{lastPlacedOrder.customerName}</span>
+            </div>
+            {lastPlacedOrder.customerPhone && (
+              <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0" }}>
+                <span>Phone:</span>
+                <span>{lastPlacedOrder.customerPhone}</span>
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0", fontWeight: "bold" }}>
+              <span>Order Type:</span>
+              <span>{lastPlacedOrder.type?.toUpperCase()}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0" }}>
+              <span>Payment:</span>
+              <span style={{ fontWeight: "bold" }}>{lastPlacedOrder.paymentMethod?.toUpperCase()} (PAID)</span>
+            </div>
           </div>
 
+          {/* Items Table */}
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", textAlign: "left" }}>
             <thead>
-              <tr style={{ borderBottom: "1px dashed black" }}>
-                <th style={{ paddingBottom: "3px" }}>Item</th>
-                <th style={{ textAlign: "center", paddingBottom: "3px" }}>Qty</th>
-                <th style={{ textAlign: "right", paddingBottom: "3px" }}>Amt</th>
+              <tr style={{ borderBottom: "1px dashed #000" }}>
+                <th style={{ paddingBottom: "3px", textAlign: "left", width: "55%" }}>ITEM</th>
+                <th style={{ paddingBottom: "3px", textAlign: "center", width: "18%" }}>QTY</th>
+                <th style={{ paddingBottom: "3px", textAlign: "right", width: "27%" }}>AMT (₹)</th>
               </tr>
             </thead>
             <tbody>
@@ -1370,62 +1451,81 @@ const currentOrderNum = orderNumber || `PC-${Date.now().toString().slice(-4)}`;
                 const amt = item.subtotal || item.price * tQty;
 
                 return (
-                  <tr key={`${item.name}-${item.size || "250 ml"}-${idx}`} style={{ borderBottom: "1px dotted #eee" }}>
-                    <td style={{ padding: "3px 0" }}>
-                      <div style={{ fontWeight: "bold" }}>
+                  <tr key={`${item.name}-${item.size || "250 ml"}-${idx}`} style={{ borderBottom: "1px dotted #ccc" }}>
+                    <td style={{ padding: "3px 0", verticalAlign: "top" }}>
+                      <div style={{ fontWeight: "bold", fontSize: "10.5px" }}>
                         {item.name} {item.size ? `(${item.size})` : ""}
                       </div>
-                      <div style={{ fontSize: "8.5px", color: "#555" }}>
-                        {pQty > 0 ? `Parcel: ${pQty}` : ""}
-                        {pQty > 0 && cQty > 0 ? ` | ` : ""}
-                        {cQty > 0 ? `At Cart: ${cQty}` : ""}
-                      </div>
+                      {(pQty > 0 || cQty > 0) && (
+                        <div style={{ fontSize: "8.5px", color: "#333", marginTop: "1px" }}>
+                          {pQty > 0 ? `Parcel: ${pQty}` : ""}
+                          {pQty > 0 && cQty > 0 ? ` | ` : ""}
+                          {cQty > 0 ? `At Cart: ${cQty}` : ""}
+                        </div>
+                      )}
                     </td>
-                    <td style={{ textAlign: "center", padding: "3px 0", fontWeight: "bold" }}>{tQty}</td>
-                    <td style={{ textAlign: "right", padding: "3px 0", fontWeight: "bold" }}>₹{amt}</td>
+                    <td style={{ textAlign: "center", padding: "3px 0", verticalAlign: "top", fontWeight: "bold" }}>
+                      {tQty}
+                    </td>
+                    <td style={{ textAlign: "right", padding: "3px 0", verticalAlign: "top", fontWeight: "bold" }}>
+                      ₹{amt}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
 
-          <div style={{ borderTop: "1px dashed black", paddingTop: "4px", marginTop: "4px", fontSize: "10px" }}>
-            <div style={{ display: "flex", justifyContent: "between", width: "100%" }}>
+          {/* Pricing Calculation Summary */}
+          <div style={{ borderTop: "1px dashed #000", paddingTop: "4px", marginTop: "4px", fontSize: "10px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0" }}>
               <span>Subtotal:</span>
-              <span style={{ float: "right" }}>₹{lastPlacedOrder.subtotal}</span>
+              <span>₹{lastPlacedOrder.subtotal}</span>
             </div>
             {lastPlacedOrder.discount > 0 && (
-              <div style={{ display: "flex", justifyContent: "between", width: "100%", color: "red" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0", fontWeight: "bold" }}>
                 <span>Discount:</span>
-                <span style={{ float: "right" }}>- ₹{lastPlacedOrder.discount}</span>
+                <span>- ₹{lastPlacedOrder.discount}</span>
               </div>
             )}
-            <div style={{ display: "flex", justifyContent: "between", width: "100%", fontWeight: "bold", fontSize: "12px", borderTop: "1px dashed black", marginTop: "2px", paddingTop: "2px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "13px", borderTop: "1px dashed #000", borderBottom: "1px dashed #000", marginTop: "3px", padding: "3px 0" }}>
               <span>GRAND TOTAL:</span>
-              <span style={{ float: "right" }}>₹{lastPlacedOrder.total}</span>
+              <span>₹{lastPlacedOrder.total}</span>
             </div>
             {lastPlacedOrder.paymentMethod === "Cash" && lastPlacedOrder.cashReceived > 0 && (
-              <>
-                <div style={{ display: "flex", justifyContent: "between", width: "100%", fontSize: "9.5px", marginTop: "3px" }}>
+              <div style={{ marginTop: "3px", fontSize: "9.5px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0" }}>
                   <span>Cash Tendered:</span>
-                  <span style={{ float: "right" }}>₹{lastPlacedOrder.cashReceived}</span>
+                  <span>₹{lastPlacedOrder.cashReceived}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "between", width: "100%", fontWeight: "bold", fontSize: "10.5px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", margin: "1px 0", fontWeight: "bold" }}>
                   <span>Change Return:</span>
-                  <span style={{ float: "right" }}>₹{lastPlacedOrder.changeAmount}</span>
+                  <span>₹{lastPlacedOrder.changeAmount}</span>
                 </div>
-              </>
+              </div>
             )}
           </div>
 
-          <div className="text-center" style={{ marginTop: "12px", borderTop: "1px dashed black", paddingTop: "6px", fontSize: "9px" }}>
-            <div>{settings.receiptHeader || "WELCOME TO PRASAD COLD COCO"}</div>
-            <div style={{ fontWeight: "bold", margin: "2px 0" }}>{settings.receiptFooter || "THANK YOU! VISIT AGAIN!"}</div>
+          {/* Notes if any */}
+          {lastPlacedOrder.notes && (
+            <div style={{ marginTop: "4px", padding: "3px 0", borderTop: "1px dotted #ccc", fontSize: "9px" }}>
+              <b>Note:</b> {lastPlacedOrder.notes}
+            </div>
+          )}
+
+          {/* Receipt Footer */}
+          <div style={{ textAlign: "center", marginTop: "6px", borderTop: "1px dashed #000", paddingTop: "4px", fontSize: "9px" }}>
+            <div style={{ fontWeight: "900", margin: "2px 0", fontSize: "10px" }}>
+              {settings.receiptFooter || "THANK YOU! VISIT AGAIN!"}
+            </div>
             {settings.googleReviewUrl && (
-              <div style={{ fontSize: "8px", color: "#555" }}>
-                Scan to review us on Google!
+              <div style={{ fontSize: "8px", marginTop: "2px" }}>
+                ⭐ Review us on Google!
               </div>
             )}
+          </div>
+          <div style={{ textAlign: "center", fontSize: "8px", marginTop: "3px", color: "#666" }}>
+            --- Thank You ---
           </div>
         </div>
       )}
